@@ -1,54 +1,36 @@
 import os
-import requests
+from typing import Any
 from dotenv import load_dotenv
-from prompts.system_prompt import SYSTEM_PROMPT
-from data.youcode_context import YOUCODE_CONTEXT
-from prompts.examples import FEW_SHOT_EXAMPLES
-
-
+import requests
 load_dotenv()
+
 
 llama_url = os.getenv("LLAMA_URL")
 llama_model = os.getenv("LLAMA_MODEL")
 
 
-def ask_ollama(question):
-    user_prompt = f"""
-    Contexte officiel disponible :
-    <context>
-    {YOUCODE_CONTEXT}
-    </context>
+def ask_ollama(
+    messages: list[dict[str, str]],
+    output_schema: dict[str, Any] | None = None
+    ):
 
-    Question du visiteur :
-    <question>
-    {question}
-    </question>
+    payload: dict[str, Any] = {
+        "model": llama_model,
+        "messages": messages,
+        "stream": False,
+        "options": {
+            "temperature": 0.1,
+            "num_predict": 100,
+        },
+    }
 
-    Réponds uniquement à partir du contexte disponible.
-    """
+    if output_schema is not None:
+        payload["format"] = output_schema
 
     response = requests.post(
-        llama_url,
-        json={
-            "model": llama_model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
-                },
-                *FEW_SHOT_EXAMPLES,
-                {
-                    "role": "user",
-                    "content": user_prompt,
-                },
-            ],
-            "stream": False,
-            "options": {
-                "temperature": 0.2,
-                "num_predict": 80,
-            },
-        },
-        timeout=120
+        llama_url+"chat",
+        json=payload,
+        timeout=120,
     )
 
     response.raise_for_status()
