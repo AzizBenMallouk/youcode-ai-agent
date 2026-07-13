@@ -3,6 +3,13 @@ YouCode est une école de programmation qui adopte une pédagogie basée sur la 
 YouCode… Ce n'est pas un simple nom. C'est toute une philosophie. YouCode est une école inclusive qui ouvre les chances à tous. You… comme… toi. YouCode place l'individu au centre de sa pédagogie en même temps qu'elle l'aide à développer une synergie de travail avec les autres . Code… comme code. Du site web aux algorithmes en passant par les applis. Située dans des villes comme Youssoufia ou Safi, des villes propices pour y étudier le code, loin de l'effervescence des grandes villes.
 
 
+# Inscription à YouCode
+Pour vous inscrire, rendez-vous sur :
+https://candidature.youcode.ma/register
+Remplissez le formulaire avec vos informations personnelles, puis passez le test en ligne.
+La plateforme d’inscription est généralement ouverte entre juin et août. Si les inscriptions ne sont pas encore ouvertes, vous pouvez rejoindre la liste d’attente. Vous serez informé dès le lancement des candidatures
+
+
 # Avantages: 
 1. Apprendre sans barrière : Car peu importe votre niveau d'études, votre sexe ou encore votre pouvoir d'achat, chacun(e) est le/la bienvenu(e) à YouCode. Aucun diplôme n'est requis. Nous valorisons la passion pour la technologie et l'envie d'apprentissage
 2. Méthodologie innovante : 100% pratique et axée sur les technologies les plus demandées du marché, YouCode utilise un programme d'apprentissage basé sur les projets, utilisant la technologie et la recherche pour relier les concepts à la réalité du marché du travail

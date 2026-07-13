@@ -21,7 +21,8 @@ def main() -> None:
     while True:
         question = input(
             "\nPosez votre question sur YouCode "
-            "(ou 'quit') : "
+            "('clear' pour vider l'historique, "
+            "'quit' pour quitter) : "
         ).strip()
 
         if question.lower() in {

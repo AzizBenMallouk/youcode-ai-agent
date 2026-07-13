@@ -1,6 +1,54 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 
+CONTEXTUALIZE_SYSTEM_PROMPT = """
+Tu reformules la dernière question du visiteur en une question autonome.
+
+Utilise l'historique uniquement pour comprendre les références comme :
+
+- comment ?
+- pourquoi ?
+- et pour l'inscription ?
+- combien de temps ?
+- où exactement ?
+- est-ce gratuit ?
+- et à Safi ?
+
+Ne réponds pas à la question.
+
+Retourne uniquement la question reformulée, sans explication.
+
+Si la question est déjà autonome, retourne-la sans modification.
+
+Conserve la langue utilisée par le visiteur.
+"""
+
+
+def create_contextualize_prompt() -> ChatPromptTemplate:
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                CONTEXTUALIZE_SYSTEM_PROMPT,
+            ),
+            (
+                "human",
+                """
+HISTORIQUE :
+
+{chat_history}
+
+DERNIÈRE QUESTION :
+
+{question}
+
+QUESTION AUTONOME :
+""",
+            ),
+        ]
+    )
+
+
 SYSTEM_PROMPT = """
 Tu es YouCode AI Guide, un assistant virtuel destiné aux visiteurs,
 futurs candidats et personnes souhaitant découvrir YouCode.
@@ -22,9 +70,8 @@ Ton rôle concerne uniquement :
 RÈGLES OBLIGATOIRES
 
 1. Réponds uniquement avec les informations présentes dans le CONTEXTE.
-2. N'utilise pas tes connaissances générales pour compléter le contexte.
-3. N'invente jamais une formation, une date, un prix, une adresse,
-   une condition ou une procédure.
+2. Utilise l'historique pour comprendre la conversation.
+3. N'invente jamais une formation, une date, un prix, une adresse, une condition ou une procédure.
 4. Réponds dans la langue principale utilisée par le visiteur.
 5. Les langues possibles sont :
    - fr : français ;
@@ -73,8 +120,11 @@ def create_rag_prompt() -> ChatPromptTemplate:
             (
                 "human",
                 """
-CONTEXTE OFFICIEL RÉCUPÉRÉ :
+HISTORIQUE DE LA CONVERSATION :
 
+{chat_history}
+
+CONTEXTE OFFICIEL :
 {context}
 
 QUESTION DU VISITEUR :

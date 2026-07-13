@@ -45,7 +45,7 @@ def ingest_documents(
     settings = get_settings()
 
     # 1. Charger les documents
-    documents = load_documents(
+    documents = load_documents( # TODO
         settings.documents_path
     )
 
@@ -54,7 +54,7 @@ def ingest_documents(
         return 0
 
     # 2. Découper les documents
-    chunks = split_documents(
+    chunks = split_documents( # TODO
         documents=documents,
         chunk_size=settings.chunk_size,
         chunk_overlap=settings.chunk_overlap,
@@ -90,7 +90,7 @@ def ingest_documents(
     )
 
     # 7. Créer le vector store LangChain
-    vector_store = create_vector_store(
+    vector_store = create_vector_store( # TODO
         client=client,
         settings=settings,
         embeddings=embeddings,
@@ -98,12 +98,12 @@ def ingest_documents(
 
     # 8. Générer des identifiants stables
     ids = [
-        generate_document_id(chunk)
+        generate_document_id(chunk) # TODO
         for chunk in chunks
     ]
 
     # 9. Stocker les chunks dans Qdrant
-    vector_store.add_documents(
+    vector_store.add_documents( # TODO
         documents=chunks,
         ids=ids,
     )

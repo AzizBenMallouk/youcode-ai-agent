@@ -39,7 +39,7 @@ def create_retriever_store(
 def search_documents(
     question: str,
     vector_store: QdrantVectorStore,
-    k: int = 4,
+    k: int = 3,
     score_threshold: float = 0.40,
 ) -> list[SearchResult]:
     clean_question = question.strip()
