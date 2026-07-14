@@ -13,6 +13,11 @@ from youcode_ai_guide.retriever import (
     create_mmr_retriever,
     retrieve_documents,
 )
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+)
 
 
 def create_chat_model(
@@ -106,8 +111,15 @@ class YouCodeRAG:
             | self.structured_model
         )
 
+        self.retriever = create_mmr_retriever(
+            self.vector_store, 
+            self.settings.retrieval_k,
+            self.settings.fetch_k,
+            self.settings.lambda_mult
+        )
+
         self.history: list[
-            tuple[str, str]
+            BaseMessage
         ] = []
 
     def format_history(self) -> str:
@@ -140,9 +152,7 @@ class YouCodeRAG:
         standalone_question = (
             self.contextualize_chain.invoke(
                 {
-                    "chat_history": (
-                        self.format_history()
-                    ),
+                    "chat_history": self.history,
                     "question": question,
                 }
             )
@@ -168,20 +178,16 @@ class YouCodeRAG:
                 "La question ne peut pas être vide."
             )
 
-        chat_history = self.format_history()
-
-        # Transformer une question comme
-        # "mais comment ?" en question autonome
         standalone_question = (
             self.contextualize_question(
                 clean_question
             )
         )
 
-        print(
-            "[Question recherchée] "
-            f"{standalone_question}"
-        )
+        # print(
+        #     "[Question recherchée] "
+        #     f"{standalone_question}"
+        # )
 
         # Utiliser la question reformulée
         # pour la recherche Qdrant
@@ -199,14 +205,8 @@ class YouCodeRAG:
 
         # search_results = retrieve_documents(question, retriever)
 
-        retriever = create_mmr_retriever(
-            self.vector_store, 
-            self.settings.retrieval_k,
-            self.settings.fetch_k,
-            self.settings.lambda_mult
-        )
 
-        search_results = retrieve_documents(question, retriever)
+        search_results = retrieve_documents(standalone_question, self.retriever)
 
         documents = [
             document
@@ -221,7 +221,7 @@ class YouCodeRAG:
         # - la question originale.
         response = self.rag_chain.invoke(
             {
-                "chat_history": chat_history,
+                "chat_history": self.history,
                 "context": context,
                 "question": clean_question,
             }
@@ -229,14 +229,18 @@ class YouCodeRAG:
 
         # Enregistrer le nouvel échange
         self.history.append(
-            (
-                clean_question,
-                response.answer,
+            HumanMessage(
+                content=clean_question
+            )
+        )
+        self.history.append(
+            AIMessage(
+                content=response.answer
             )
         )
 
         # Limiter la mémoire
-        self.history = self.history[-3:]
+        self.history = self.history[-5:]
 
         return response
     

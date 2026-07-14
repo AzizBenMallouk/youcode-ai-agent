@@ -1,0 +1,28 @@
+TITRE : Programme de YouCode
+CATEGORIE : program
+SOURCE_TYPE : official_document
+
+Le programme de YouCode permet aux apprenants de découvrir, d'apprendre et d'approfondir leurs compétences dans le domaine de la programmation.
+
+PREMIERE ANNEE
+
+La première année est une formation technique en tronc commun. Elle permet d'apprendre les bases de la programmation et du développement web.
+
+DEUXIEME ANNEE
+
+La deuxième année est consacrée aux approfondissements et aux spécialisations. Elle comprend dix mois de spécialisation, incluant trois mois de stage en entreprise.
+
+PARCOURS DEVELOPPEUR AI
+
+Le parcours Développeur AI est disponible sur deux campus : Youssoufia et Safi.
+
+L'intelligence artificielle transforme les métiers, les produits et les services. Le parcours Développeur AI de YouCode forme des profils capables de passer de la donnée au déploiement, en construisant des solutions concrètes, utiles et exploitables en entreprise.
+
+Les apprenants apprennent notamment à :
+
+- manipuler les données ;
+- préparer des jeux de données ;
+- entraîner et évaluer des modèles ;
+- créer des API intelligentes ;
+- intégrer des services d'intelligence artificielle externes ;
+- mettre en place des pratiques de monitoring et de MLOps.

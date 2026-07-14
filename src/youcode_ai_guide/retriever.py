@@ -10,10 +10,25 @@ from youcode_ai_guide.vector_store import (
     create_qdrant_client,
     create_vector_store,
 )
+from qdrant_client import models
 
 
 SearchResult = tuple[Document, float]
 
+
+def create_category_filter(
+    category: str,
+) -> models.Filter:
+    return models.Filter(
+        must=[
+            models.FieldCondition(
+                key="metadata.category",
+                match=models.MatchValue(
+                    value=category,
+                ),
+            ),
+        ]
+    )
 
 def create_retriever_store(
     settings: Settings,
@@ -106,6 +121,13 @@ def create_mmr_retriever(
             "lambda_mult doit être compris "
             "entre 0 et 1."
         )
+    
+    admission_filter = (
+        create_category_filter(
+            "admission"
+        )
+    )
+
 
     return vector_store.as_retriever(
         search_type="mmr",
@@ -113,6 +135,7 @@ def create_mmr_retriever(
             "k": k,
             "fetch_k": fetch_k,
             "lambda_mult": lambda_mult,
+            "filter": admission_filter
         },
     )
 

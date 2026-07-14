@@ -1,0 +1,19 @@
+TITRE : Campus YouCode Youssoufia
+CATEGORIE : campus
+CAMPUS : Youssoufia
+SOURCE_TYPE : official_document
+
+Le campus YouCode de Youssoufia est une école high-tech de plus de 2 500 m². Il dispose de dix salles de cours équipées d'ordinateurs de dernière génération, d'une connexion internet haut débit et d'équipements technologiques modernes.
+
+Le campus comprend également :
+
+- un espace de détente de 100 m², aménagé pour permettre aux apprenants de se retrouver, d'échanger, de collaborer ou de se divertir ;
+- six salles de réunion et des espaces collaboratifs pour travailler en équipe sur des projets collectifs ;
+- un FabLab permettant de réaliser, concrétiser et prototyper des idées et des projets ;
+- un restaurant et une terrasse pour les pauses entre les cours ;
+- une bibliothèque destinée à la lecture, à la recherche et au développement de la curiosité ;
+- des espaces fonctionnels offrant un environnement adapté aux études.
+
+ADRESSE
+
+Boulevard Moulay Youssef, Youssoufia, Maroc.

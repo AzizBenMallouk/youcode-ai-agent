@@ -1,0 +1,27 @@
+TITRE : Principes pédagogiques de YouCode
+CATEGORIE : pedagogy
+SOURCE_TYPE : official_document
+
+UNE PEDAGOGIE ACTIVE
+
+À YouCode, les apprenants sont confrontés à des mises en situation concrètes à travers des projets individuels ou réalisés en équipe.
+
+Le travail collaboratif occupe une place importante. Les apprenants sont encouragés à échanger entre eux, quel que soit le projet en cours, afin d'avancer ensemble et de trouver des réponses. Cette synergie entre les apprenants contribue à rendre l'approche de YouCode particulière.
+
+UNE JOURNEE A YOUCODE
+
+1. Veille
+
+Les apprenants effectuent une veille pour s'informer sur les dernières technologies et les évolutions du secteur.
+
+2. Théorie
+
+Le thème de la journée est présenté et introduit.
+
+3. Brief ou projet
+
+Les apprenants travaillent en groupe et en autonomie sur des projets liés à des situations d'entreprise et à l'écosystème de la fabrique.
+
+4. Restitution
+
+Les apprenants présentent leur travail. Ces restitutions constituent également des moments d'évaluation et d'échange.

@@ -9,7 +9,43 @@ from openpyxl import load_workbook
 
 
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".md", ".xlsx"}
+VALID_CATEGORIES = {
+    "general",
+    "admission",
+    "program",
+    "campus",
+    "pedagogy",
+    "career",
+    "event",
+    "practical",
+}
 
+
+def detect_category(
+    file_path: Path,
+    documents_root: Path,
+) -> str:
+    try:
+        relative_path = file_path.relative_to(
+            documents_root
+        )
+
+    except ValueError:
+        return "general"
+
+    if len(relative_path.parts) < 2:
+        return "general"
+
+    category = (
+        relative_path.parts[0]
+        .strip()
+        .lower()
+    )
+
+    if category not in VALID_CATEGORIES:
+        return "general"
+
+    return category
 
 def load_pdf(file_path: Path) -> list[Document]:
     loader = PyPDFLoader(str(file_path))
@@ -138,6 +174,22 @@ def load_documents(directory: Path) -> list[Document]:
     for file_path in files:
         try:
             loaded_documents = load_file(file_path)
+
+            category = detect_category(
+                file_path=file_path,
+                documents_root=directory,
+            )
+
+            for document in loaded_documents:
+                document.metadata.update(
+                    {
+                        "category": category,
+                        "source_type": (
+                            "official_document"
+                        ),
+                    }
+                )
+
             documents.extend(loaded_documents)
 
             print(

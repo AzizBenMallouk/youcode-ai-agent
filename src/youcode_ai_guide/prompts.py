@@ -1,4 +1,7 @@
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import (
+    ChatPromptTemplate, 
+    MessagesPlaceholder
+)
 
 
 CONTEXTUALIZE_SYSTEM_PROMPT = """
@@ -117,13 +120,12 @@ def create_rag_prompt() -> ChatPromptTemplate:
                 "system",
                 SYSTEM_PROMPT,
             ),
+            MessagesPlaceholder(
+                variable_name="chat_history"
+            ),
             (
                 "human",
                 """
-HISTORIQUE DE LA CONVERSATION :
-
-{chat_history}
-
 CONTEXTE OFFICIEL :
 {context}
 
