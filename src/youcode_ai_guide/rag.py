@@ -10,7 +10,8 @@ from youcode_ai_guide.models import GuideResponse
 from youcode_ai_guide.prompts import create_rag_prompt, create_contextualize_prompt
 from youcode_ai_guide.retriever import (
     create_retriever_store,
-    search_documents,
+    create_mmr_retriever,
+    retrieve_documents,
 )
 
 
@@ -184,11 +185,28 @@ class YouCodeRAG:
 
         # Utiliser la question reformulée
         # pour la recherche Qdrant
-        search_results = search_documents(
-            question=standalone_question,
-            vector_store=self.vector_store,
-            k=self.settings.retrieval_k
+        # search_results = search_documents(
+        #     question=standalone_question,
+        #     vector_store=self.vector_store,
+        #     k=self.settings.retrieval_k
+        # )
+
+        # retriever = create_threshold_retriever(
+        #     self.vector_store, 
+        #     self.settings.retrieval_k,
+        #     self.settings.score_threshold
+        # )
+
+        # search_results = retrieve_documents(question, retriever)
+
+        retriever = create_mmr_retriever(
+            self.vector_store, 
+            self.settings.retrieval_k,
+            self.settings.fetch_k,
+            self.settings.lambda_mult
         )
+
+        search_results = retrieve_documents(question, retriever)
 
         documents = [
             document

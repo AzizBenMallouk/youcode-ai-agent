@@ -1,5 +1,8 @@
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
+from langchain_core.vectorstores import (
+    VectorStoreRetriever,
+)
 
 from youcode_ai_guide.config import Settings
 from youcode_ai_guide.embeddings import create_embeddings
@@ -46,7 +49,7 @@ def search_documents(
 
     if not clean_question:
         return []
-
+    
     results = vector_store.similarity_search_with_score(
         query=clean_question,
         k=k,
@@ -59,3 +62,72 @@ def search_documents(
     ]
 
     return relevant_results
+
+def create_retriever(
+    vector_store: QdrantVectorStore,
+    k: int = 4,
+) -> VectorStoreRetriever:
+    return vector_store.as_retriever(
+        search_type="similarity",
+        search_kwargs={
+            "k": k,
+        },
+    )
+
+def create_threshold_retriever(
+    vector_store: QdrantVectorStore,
+    k: int = 4,
+    score_threshold: float = 0.40,
+) -> VectorStoreRetriever:
+    return vector_store.as_retriever(
+        search_type=(
+            "similarity_score_threshold"
+        ),
+        search_kwargs={
+            "k": k,
+            "score_threshold": score_threshold,
+        },
+    )
+
+def create_mmr_retriever(
+    vector_store: QdrantVectorStore,
+    k: int = 4,
+    fetch_k: int = 12,
+    lambda_mult: float = 0.5,
+) -> VectorStoreRetriever:
+    if fetch_k < k:
+        raise ValueError(
+            "fetch_k doit être supérieur "
+            "ou égal à k."
+        )
+
+    if not 0 <= lambda_mult <= 1:
+        raise ValueError(
+            "lambda_mult doit être compris "
+            "entre 0 et 1."
+        )
+
+    return vector_store.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": k,
+            "fetch_k": fetch_k,
+            "lambda_mult": lambda_mult,
+        },
+    )
+
+
+def retrieve_documents(
+    question: str,
+    retriever: VectorStoreRetriever,
+) -> list[Document]:
+    clean_question = question.strip()
+
+    if not clean_question:
+        return []
+
+    documents = retriever.invoke(
+        clean_question
+    )
+
+    return documents

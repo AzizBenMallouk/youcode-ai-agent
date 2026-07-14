@@ -31,6 +31,24 @@ class Settings(BaseSettings):
         le=20,
     )
 
+    fetch_k: int = Field(
+        default=12,
+        ge=0,
+        le=100
+    )
+
+    lambda_mult: float = Field(
+        default=0.5,
+        ge=0.,
+        le=1.
+    )
+
+    # score_threshold: float = Field(
+    #     default=os.getenv("SCORE_THRESHOLD", 0.4),
+    #     ge=0,
+    #     le=1
+    # )
+
     chunk_size: int = Field(
         default=os.getenv("CHUNK_SIZE"),
         ge=100,
