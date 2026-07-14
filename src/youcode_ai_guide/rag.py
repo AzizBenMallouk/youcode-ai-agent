@@ -18,7 +18,28 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
+from langchain_core.runnables import (
+    RunnableLambda,
+    RunnablePassthrough,
+)
+from langchain_core.runnables.history import (
+    RunnableWithMessageHistory,
+)
 
+from youcode_ai_guide.memory import (
+    get_session_history,
+)
+
+
+def package_guide_response(
+    response: GuideResponse,
+) -> dict:
+    return {
+        "response": response,
+        "message": AIMessage(
+            content=response.answer
+        ),
+    }
 
 def create_chat_model(
     settings: Settings,
@@ -104,12 +125,7 @@ class YouCodeRAG:
             | StrOutputParser()
         )
 
-        self.rag_prompt = create_rag_prompt()
 
-        self.rag_chain = (
-            self.rag_prompt
-            | self.structured_model
-        )
 
         self.retriever = create_mmr_retriever(
             self.vector_store, 
@@ -118,41 +134,83 @@ class YouCodeRAG:
             self.settings.lambda_mult
         )
 
-        self.history: list[
-            BaseMessage
-        ] = []
-
-    def format_history(self) -> str:
-        if not self.history:
-            return "Aucun historique."
-
-        recent_history = self.history[-3:]
-
-        lines: list[str] = []
-
-        for user_message, assistant_message in recent_history:
-            lines.append(
-                f"Visiteur : {user_message}"
+        self.prepare_rag_input = (
+            RunnablePassthrough.assign(
+                context=(
+                    RunnableLambda(
+                        lambda data: (
+                            data["search_question"]
+                        )
+                    )
+                    | self.retriever
+                    | RunnableLambda(
+                        format_context
+                    )
+                )
             )
+        )
 
-            lines.append(
-                f"Assistant : {assistant_message}"
+        self.rag_prompt = create_rag_prompt()
+
+        self.rag_chain = (
+            self.prepare_rag_input
+            | self.rag_prompt
+            | self.structured_model
+            | RunnableLambda(
+                package_guide_response
             )
+        )
 
-        return "\n".join(lines)
+        self.rag_chain_with_history = (
+            RunnableWithMessageHistory(
+                self.rag_chain,
+                get_session_history,
+                input_messages_key="question",
+                history_messages_key=(
+                    "chat_history"
+                ),
+                output_messages_key="message",
+            )
+        )
+
+    # def format_history(self) -> str:
+    #     if not self.history:
+    #         return "Aucun historique."
+
+    #     recent_history = self.history[-3:]
+
+    #     lines: list[str] = []
+
+    #     for user_message, assistant_message in recent_history:
+    #         lines.append(
+    #             f"Visiteur : {user_message}"
+    #         )
+
+    #         lines.append(
+    #             f"Assistant : {assistant_message}"
+    #         )
+
+    #     return "\n".join(lines)
     
 
     def contextualize_question(
         self,
+        session_id: str,
         question: str,
     ) -> str:
-        if not self.history:
+        
+        history = get_session_history(
+            session_id
+        )
+
+
+        if not history.messages:
             return question
 
         standalone_question = (
             self.contextualize_chain.invoke(
                 {
-                    "chat_history": self.history,
+                    "chat_history": history.messages,
                     "question": question,
                 }
             )
@@ -169,6 +227,7 @@ class YouCodeRAG:
 
     def ask(
         self,
+        session_id: str,
         question: str,
     ) -> GuideResponse:
         clean_question = question.strip()
@@ -180,7 +239,7 @@ class YouCodeRAG:
 
         standalone_question = (
             self.contextualize_question(
-                clean_question
+                session_id, clean_question
             )
         )
 
@@ -206,38 +265,56 @@ class YouCodeRAG:
         # search_results = retrieve_documents(question, retriever)
 
 
-        documents = retrieve_documents(standalone_question, self.retriever)
+        # documents = retrieve_documents(standalone_question, self.retriever)
 
-        context = format_context(documents)
+        # context = format_context(documents)
 
-        # Donner au modèle :
-        # - l'historique ;
-        # - le contexte récupéré ;
-        # - la question originale.
-        response = self.rag_chain.invoke(
-            {
-                "chat_history": self.history,
-                "context": context,
-                "question": clean_question,
-            }
-        )
+        # # Donner au modèle :
+        # # - l'historique ;
+        # # - le contexte récupéré ;
+        # # - la question originale.
+        # response = self.rag_chain.invoke(
+        #     {
+        #         "chat_history": self.history,
+        #         "context": context,
+        #         "question": clean_question,
+        #     }
+        # )
 
-        # Enregistrer le nouvel échange
-        self.history.append(
-            HumanMessage(
-                content=clean_question
+        # # Enregistrer le nouvel échange
+        # self.history.append(
+        #     HumanMessage(
+        #         content=clean_question
+        #     )
+        # )
+        # self.history.append(
+        #     AIMessage(
+        #         content=response.answer
+        #     )
+        # )
+
+        # # Limiter la mémoire
+        # self.history = self.history[-5:]
+
+        result = (
+            self.rag_chain_with_history.invoke(
+                {
+                    "question": clean_question,
+                    "search_question": (
+                        standalone_question
+                    ),
+                },
+                config={
+                    "configurable": {
+                        "session_id": session_id,
+                    }
+                },
             )
         )
-        self.history.append(
-            AIMessage(
-                content=response.answer
-            )
-        )
 
-        # Limiter la mémoire
-        self.history = self.history[-5:]
 
-        return response
+
+        return result["response"]
     
     def clear_history(self) -> None:
         self.history.clear()

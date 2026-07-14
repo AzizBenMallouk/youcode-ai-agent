@@ -15,6 +15,8 @@ def main() -> None:
             f"{error}"
         )
         return
+    
+    session_id = "123"
 
     print("Assistant prêt.")
 
@@ -38,7 +40,7 @@ def main() -> None:
             continue
 
         # try:
-        response = guide.ask(question)
+        response = guide.ask(session_id, question)
 
         # print("\nRéponse structurée :")
         # print(
