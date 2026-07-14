@@ -37,31 +37,31 @@ def main() -> None:
             print("Veuillez saisir une question.")
             continue
 
-        try:
-            response = guide.ask(question)
+        # try:
+        response = guide.ask(question)
 
-            # print("\nRéponse structurée :")
-            # print(
-            #     response.model_dump_json(
-            #         indent=2
-            #     )
-            # )
+        # print("\nRéponse structurée :")
+        # print(
+        #     response.model_dump_json(
+        #         indent=2
+        #     )
+        # )
 
-            print("\nRéponse :")
-            print(response.answer)
+        print("\nRéponse :")
+        print(response.answer)
 
-        except ValidationError as error:
-            print(
-                "La réponse du modèle ne respecte "
-                "pas le format attendu."
-            )
+        # except ValidationError as error:
+        #     print(
+        #         "La réponse du modèle ne respecte "
+        #         "pas le format attendu."
+        #     )
 
-            print(error)
+        #     print(error)
 
-        except Exception as error:
-            print(
-                f"Une erreur est survenue : {error}"
-            )
+        # except Exception as error:
+        #     print(
+        #         f"Une erreur est survenue : {error}"
+        #     )
 
 
 if __name__ == "__main__":

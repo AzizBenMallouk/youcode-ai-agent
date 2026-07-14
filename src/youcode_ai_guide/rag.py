@@ -206,12 +206,7 @@ class YouCodeRAG:
         # search_results = retrieve_documents(question, retriever)
 
 
-        search_results = retrieve_documents(standalone_question, self.retriever)
-
-        documents = [
-            document
-            for document, _score in search_results
-        ]
+        documents = retrieve_documents(standalone_question, self.retriever)
 
         context = format_context(documents)
 
