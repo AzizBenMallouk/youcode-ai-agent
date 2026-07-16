@@ -21,7 +21,7 @@ def create_youcode_agent():
         tools=tools,
         system_prompt=YOUCODE_AGENT_SYSTEM_PROMPT,
         context_schema=AgentRuntimeContext,
-        response_format=GuideResponse,
+        response_format=GuideResponse.model_json_schema(),
         checkpointer=checkpointer,
         middleware=[handle_tool_errors],
     )

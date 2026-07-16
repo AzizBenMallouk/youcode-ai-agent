@@ -1,4 +1,5 @@
 from uuid import uuid4
+import traceback
 
 from youcode_guide.agent.service import (
     YouCodeAgentService,
@@ -41,11 +42,12 @@ class TerminalApplication:
             try:
                 self._process_question(question)
 
-            except Exception:
+            except Exception as error:
                 print(
-                    "\nUne erreur technique est survenue. "
-                    "Veuillez réessayer.\n"
+                    f"\nErreur : {type(error).__name__}: "
+                    f"{error}\n"
                 )
+                traceback.print_exc()
 
     def _process_question(
         self,

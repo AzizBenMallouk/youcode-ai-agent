@@ -27,10 +27,10 @@ class Category(str, Enum):
 
 
 class GuideResponse(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
+    # model_config = ConfigDict(
+    #     extra="forbid",
+    #     str_strip_whitespace=True,
+    # )
 
     language: Language = Field(
         description=(
@@ -68,7 +68,7 @@ class GuideResponse(BaseModel):
 
 
 class SourceReference(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # model_config = ConfigDict(extra="forbid")
 
     source: str
     category: str | None = None
@@ -77,7 +77,7 @@ class SourceReference(BaseModel):
 
 
 class KnowledgeResult(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # model_config = ConfigDict(extra="forbid")
 
     response: GuideResponse
 
@@ -87,10 +87,10 @@ class KnowledgeResult(BaseModel):
 
 
 class ContextualizedQuestion(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
+    # model_config = ConfigDict(
+    #     extra="forbid",
+    #     str_strip_whitespace=True,
+    # )
 
     search_question: str = Field(
         min_length=1,

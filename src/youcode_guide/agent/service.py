@@ -122,20 +122,53 @@ class YouCodeAgentService:
 
         return messages[last_human_index:]
 
-    @staticmethod
+    @classmethod
     def _parse_tool_content(
+        cls,
         content: Any,
     ) -> dict[str, Any]:
         if isinstance(content, dict):
             return content
 
-        if isinstance(content, str):
-            try:
-                parsed = json.loads(content)
+        # Certains modèles retournent une liste de blocs.
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict):
+                    block_content = (
+                        block.get("text")
+                        or block.get("content")
+                    )
 
-                if isinstance(parsed, dict):
-                    return parsed
-            except json.JSONDecodeError:
-                return {}
+                    if block_content is not None:
+                        parsed = cls._parse_tool_content(
+                            block_content,
+                        )
+
+                        if parsed:
+                            return parsed
+
+            return {}
+
+        if not isinstance(content, str):
+            return {}
+
+        # Format JSON normal.
+        try:
+            parsed = json.loads(content)
+
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+
+        # Compatibilité temporaire avec les anciens tools
+        # qui retournaient la représentation Python d'un dict.
+        try:
+            parsed = ast.literal_eval(content)
+
+            if isinstance(parsed, dict):
+                return parsed
+        except (ValueError, SyntaxError):
+            pass
 
         return {}
