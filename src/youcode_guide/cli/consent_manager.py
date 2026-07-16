@@ -21,6 +21,30 @@ PURPOSE_LABELS = {
 }
 
 
+POSITIVE_ANSWERS = {
+    "oui",
+    "o",
+    "yes",
+    "y",
+    "je confirme",
+    "je confirme mon consentement",
+    "j'accepte",
+    "نعم",
+    "اه",
+    "آه",
+}
+
+
+NEGATIVE_ANSWERS = {
+    "non",
+    "n",
+    "no",
+    "je refuse",
+    "je n'accepte pas",
+    "لا",
+}
+
+
 @dataclass
 class TerminalConsentManager:
     consent_service: ConsentService
@@ -45,35 +69,42 @@ class TerminalConsentManager:
         print(f"Adresse concernée : {email}")
         print(f"Objectif : {explanation}.")
         print(
-            "Vos données seront utilisées uniquement "
+            "Ces données seront utilisées uniquement "
             "pour cet objectif."
         )
 
-        confirmation = input(
-            "Acceptez-vous ? (oui/non) : "
-        ).strip().lower()
+        while True:
+            confirmation = input(
+                "\nConfirmez-vous votre consentement ? "
+                "(oui/non) : "
+            ).strip().lower()
 
-        if confirmation not in {
-            "oui",
-            "o",
-            "yes",
-            "y",
-            "نعم",
-            "اه",
-            "آه",
-        }:
+            if confirmation in POSITIVE_ANSWERS:
+                token = self.consent_service.create_grant(
+                    session_id=session_id,
+                    email=email,
+                    purpose=purpose,
+                )
+
+                self.tokens[purpose] = token
+
+                print(
+                    "\nConsentement confirmé. "
+                    "Traitement de la demande...\n"
+                )
+
+                return True
+
+            if confirmation in NEGATIVE_ANSWERS:
+                print(
+                    "\nConsentement refusé. "
+                    "Aucune donnée personnelle n'a été "
+                    "enregistrée.\n"
+                )
+
+                return False
+
             print(
-                "\nAucune donnée personnelle n'a été "
-                "enregistrée.\n"
+                "\nRéponse non reconnue. "
+                "Veuillez répondre par oui ou non."
             )
-            return False
-
-        token = self.consent_service.create_grant(
-            session_id=session_id,
-            email=email,
-            purpose=purpose,
-        )
-
-        self.tokens[purpose] = token
-
-        return True
