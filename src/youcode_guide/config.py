@@ -83,7 +83,7 @@ class Settings:
 
     consent_version: str
     consent_token_ttl_minutes: int
-
+    consent_secret_key: str
 
 def load_settings() -> Settings:
     return Settings(
@@ -135,6 +135,9 @@ def load_settings() -> Settings:
         consent_token_ttl_minutes=get_int_env(
             "CONSENT_TOKEN_TTL_MINUTES",
             default=30,
+        ),
+        consent_secret_key=get_required_env(
+            "CONSENT_SECRET_KEY"
         ),
     )
 

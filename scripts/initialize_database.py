@@ -5,7 +5,9 @@ from youcode_guide.database.connection import (
     engine,
 )
 from youcode_guide.database.schema import (
+    ConsentGrantTable,
     RegistrationSettingsTable,
+    VisitorRequestTable,
 )
 from youcode_guide.registration.models import (
     RegistrationState,
@@ -19,7 +21,9 @@ from youcode_guide.registration.service import (
 def main() -> None:
     # L'import de RegistrationSettingsTable
     # garantit que SQLAlchemy connaît la table.
+    _ = ConsentGrantTable
     _ = RegistrationSettingsTable
+    _ = VisitorRequestTable
 
     Base.metadata.create_all(engine)
 
