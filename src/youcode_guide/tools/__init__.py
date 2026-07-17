@@ -1,7 +1,7 @@
 from langchain_core.tools import BaseTool
 
-from youcode_guide.rag.service import (
-    create_rag_service,
+from youcode_guide.rag.retriever import (
+    create_parent_child_retriever,
 )
 from youcode_guide.registration.service import (
     create_registration_service,
@@ -27,7 +27,7 @@ from youcode_guide.visitor_requests.service import (
 
 
 def create_youcode_tools() -> list[BaseTool]:
-    rag_service = create_rag_service()
+    retriever_service = create_parent_child_retriever()
 
     registration_service = (
         create_registration_service()
@@ -39,7 +39,7 @@ def create_youcode_tools() -> list[BaseTool]:
 
     return [
         create_knowledge_tool(
-            rag_service
+            retriever_service
         ),
         create_registration_tool(
             registration_service

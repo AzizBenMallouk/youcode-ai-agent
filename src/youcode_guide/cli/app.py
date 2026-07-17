@@ -39,15 +39,15 @@ class TerminalApplication:
             if not question:
                 continue
 
-            try:
-                self._process_question(question)
+            # try:
+            self._process_question(question)
 
-            except Exception as error:
-                print(
-                    f"\nErreur : {type(error).__name__}: "
-                    f"{error}\n"
-                )
-                traceback.print_exc()
+            # except Exception as error:
+            #     print(
+            #         f"\nErreur : {type(error).__name__}: "
+            #         f"{error}\n"
+            #     )
+            #     traceback.print_exc()
 
     def _process_question(
         self,

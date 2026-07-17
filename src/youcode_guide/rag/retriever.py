@@ -35,7 +35,7 @@ class ParentChildRetriever:
         self.top_k = top_k
         self.score_threshold = score_threshold
 
-    def search(
+    def invoke(
         self,
         question: str,
     ) -> RetrievalResult:

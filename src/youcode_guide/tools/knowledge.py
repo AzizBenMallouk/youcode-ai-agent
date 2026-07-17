@@ -1,36 +1,36 @@
-from langchain_core.tools import (
-    BaseTool,
-    tool,
-)
+from langchain_core.tools import tool
 
-from youcode_guide.rag.service import (
-    RAGService,
+from youcode_guide.rag.retriever import ParentChildRetriever
+from youcode_guide.rag.document_formatter import (
+    format_documents_for_agent,
 )
 
 
 def create_knowledge_tool(
-    rag_service: RAGService,
-) -> BaseTool:
+    retriever: ParentChildRetriever,
+):
     @tool
     def search_youcode_knowledge(
-        question: str,
-    ) -> dict:
+        query: str,
+    ) -> str:
         """
-        Recherche exclusivement dans les documents officiels
+        Recherche des informations dans les documents officiels
         de YouCode.
 
-        Utiliser ce tool pour toute question factuelle sur :
-        présentation, formations, programmes, admissions,
-        campus, pédagogie, carrières, événements et
-        informations pratiques.
+        Utilise obligatoirement cet outil pour toute question
+        factuelle concernant YouCode : présentation, admissions,
+        formations, campus, pédagogie, débouchés, événements,
+        inscriptions et informations pratiques.
 
-        Ne pas utiliser ce tool pour modifier ou consulter
-        un dossier personnel.
+        La requête doit être autonome. Elle ne doit pas contenir
+        de références ambiguës comme « ce campus » ou « cette
+        formation ».
         """
-        result = rag_service.ask(question)
 
-        return result.model_dump(
-            mode="json"
+        documents = retriever.invoke(query)
+
+        return format_documents_for_agent(
+            documents,
         )
 
     return search_youcode_knowledge
