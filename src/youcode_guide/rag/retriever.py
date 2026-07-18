@@ -21,6 +21,18 @@ class RetrievalResult:
     children: list[Document]
     parents: list[Document]
 
+    @property
+    def information_available(self) -> bool:
+        return bool(self.parents)
+
+    @property
+    def child_count(self) -> int:
+        return len(self.children)
+
+    @property
+    def parent_count(self) -> int:
+        return len(self.parents)
+
 
 class ParentChildRetriever:
     def __init__(

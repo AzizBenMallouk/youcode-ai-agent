@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 
 from sqlalchemy import (
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -11,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
+    relationship,
 )
 
 from youcode_guide.database.connection import (
@@ -236,3 +240,178 @@ class VisitorRequestTable(Base):
         DateTime(timezone=True),
         nullable=False,
     )
+
+
+class KnowledgeGapTable(Base):
+    """
+    Représente un groupe de questions
+    sémantiquement similaires.
+    """
+
+    __tablename__ = "knowledge_gaps"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    canonical_question: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
+    )
+
+    normalized_question: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
+    )
+
+    language: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+    )
+
+    category: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        index=True,
+    )
+
+    occurrence_count: Mapped[int] = (
+        mapped_column(
+            Integer,
+            nullable=False,
+            default=1,
+        )
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="pending",
+        index=True,
+    )
+
+    vector_point_id: Mapped[
+        str | None
+    ] = mapped_column(
+        String(36),
+        unique=True,
+        nullable=True,
+    )
+
+    created_at: Mapped[
+        datetime
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    last_asked_at: Mapped[
+        datetime
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    resolved_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    indexed_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    questions: Mapped[
+        list[KnowledgeGapQuestionTable]
+    ] = relationship(
+        back_populates="knowledge_gap",
+        cascade="all, delete-orphan",
+    )
+
+
+
+class KnowledgeGapQuestionTable(Base):
+    """
+    Représente une formulation individuelle
+    appartenant à un knowledge gap.
+    """
+
+    __tablename__ = "knowledge_gap_questions"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    knowledge_gap_id: Mapped[int] = (
+        mapped_column(
+            ForeignKey(
+                "knowledge_gaps.id",
+                ondelete="CASCADE",
+            ),
+            nullable=False,
+            index=True,
+        )
+    )
+
+    original_question: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
+    )
+
+    normalized_question: Mapped[str] = (
+        mapped_column(
+            Text,
+            nullable=False,
+        )
+    )
+
+    question_hash: Mapped[str] = (
+        mapped_column(
+            String(64),
+            unique=True,
+            nullable=False,
+            index=True,
+        )
+    )
+
+    language: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+    )
+
+    semantic_score: Mapped[
+        float | None
+    ] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
+    created_at: Mapped[
+        datetime
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    knowledge_gap: Mapped[
+        KnowledgeGapTable
+    ] = relationship(
+        back_populates="questions",
+    )
+
+

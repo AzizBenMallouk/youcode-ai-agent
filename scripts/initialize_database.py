@@ -8,6 +8,8 @@ from youcode_guide.database.schema import (
     ConsentGrantTable,
     RegistrationSettingsTable,
     VisitorRequestTable,
+    KnowledgeGapTable,
+    KnowledgeGapQuestionTable
 )
 from youcode_guide.registration.models import (
     RegistrationState,
@@ -24,6 +26,8 @@ def main() -> None:
     _ = ConsentGrantTable
     _ = RegistrationSettingsTable
     _ = VisitorRequestTable
+    _ = KnowledgeGapTable
+    _ = KnowledgeGapQuestionTable
 
     Base.metadata.create_all(engine)
 

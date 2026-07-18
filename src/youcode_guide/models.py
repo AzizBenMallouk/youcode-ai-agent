@@ -85,7 +85,6 @@ class KnowledgeResult(BaseModel):
         default_factory=list,
     )
 
-
 class ContextualizedQuestion(BaseModel):
     # model_config = ConfigDict(
     #     extra="forbid",
@@ -100,3 +99,20 @@ class ContextualizedQuestion(BaseModel):
             "uniquement pour la recherche documentaire"
         ),
     )
+
+
+class KnowledgeSearchStatus(
+    str,
+    Enum,
+):
+    FOUND = "found"
+    NOT_FOUND = "not_found"
+    TECHNICAL_ERROR = "technical_error"
+
+
+class KnowledgeSearchResult(BaseModel):
+    status: KnowledgeSearchStatus
+    query: str
+    document_count: int = 0
+    context: str = ""
+    message: str | None = None

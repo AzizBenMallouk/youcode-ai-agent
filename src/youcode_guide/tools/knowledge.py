@@ -4,7 +4,10 @@ from youcode_guide.rag.retriever import ParentChildRetriever
 from youcode_guide.rag.document_formatter import (
     format_documents_for_agent,
 )
-
+from youcode_guide.models import (
+    KnowledgeSearchResult,
+    KnowledgeSearchStatus,
+)
 
 def create_knowledge_tool(
     retriever: ParentChildRetriever,
@@ -27,10 +30,72 @@ def create_knowledge_tool(
         formation ».
         """
 
-        documents = retriever.invoke(query)
+        cleaned_query = query.strip()
 
-        return format_documents_for_agent(
-            documents,
+        if not cleaned_query:
+            result = KnowledgeSearchResult(
+                status=KnowledgeSearchStatus.NOT_FOUND,
+                query="",
+                message=(
+                    "La requête de recherche est vide."
+                ),
+            )
+
+            return result.model_dump_json()
+
+        try:
+            retrieval_result = retriever.invoke(
+                cleaned_query,
+            )
+
+            # print(retrieval_result)
+
+        except Exception:
+            result = KnowledgeSearchResult(
+                status=(
+                    KnowledgeSearchStatus.TECHNICAL_ERROR
+                ),
+                query=cleaned_query,
+                message=(
+                    "La recherche documentaire est "
+                    "temporairement indisponible."
+                ),
+            )
+
+            return result.model_dump_json()
+        
+        if not retrieval_result.information_available:
+            result = KnowledgeSearchResult(
+                status=KnowledgeSearchStatus.NOT_FOUND,
+                query=cleaned_query,
+                document_count=0,
+                context="",
+                message=(
+                    "Aucun document officiel suffisamment "
+                    "pertinent n'a été trouvé."
+                ),
+            )
+
+            return result.model_dump_json()
+
+        context = format_documents_for_agent(
+            retrieval_result,
         )
+
+        result = KnowledgeSearchResult(
+            status=KnowledgeSearchStatus.FOUND,
+            query=cleaned_query,
+            document_count=(
+                retrieval_result.parent_count
+            ),
+            context=context,
+            message=(
+                "Des documents officiels pertinents "
+                "ont été trouvés."
+            ),
+        )
+
+        return result.model_dump_json()
+
 
     return search_youcode_knowledge

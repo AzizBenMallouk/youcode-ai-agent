@@ -71,6 +71,8 @@ class Settings:
 
     qdrant_url: str
     qdrant_collection: str
+    qdrant_knowledge_gap_collection: str
+    knowledge_gap_similarity_threshold: float
     parent_store_path: str
 
     database_url: str
@@ -107,6 +109,12 @@ def load_settings() -> Settings:
         ),
         qdrant_collection=get_required_env(
             "QDRANT_COLLECTION"
+        ),
+        qdrant_knowledge_gap_collection=get_required_env(
+            "QDRANT_KNOWLEDGE_GAP_COLLECTION"
+        ),
+        knowledge_gap_similarity_threshold=get_required_env(
+            "KNOWLEDGE_GAP_SIMILARITY_THRESHOLD"
         ),
         parent_store_path=get_required_env(
             "PARENT_STORE_PATH"

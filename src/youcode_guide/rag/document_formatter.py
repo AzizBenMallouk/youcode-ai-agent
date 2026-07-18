@@ -10,12 +10,14 @@ def format_documents_for_agent(
 ) -> str:
     documents: list[Document] = result.parents
 
+
     if not documents:
-        return (
-            "INFORMATION_NOT_AVAILABLE\n"
-            "Aucun document officiel suffisamment pertinent "
-            "n'a été trouvé."
-        )
+        return ""
+        # return (
+        #     "INFORMATION_NOT_AVAILABLE\n"
+        #     "Aucun document officiel suffisamment pertinent "
+        #     "n'a été trouvé."
+        # )
 
     formatted_documents: list[str] = []
 
