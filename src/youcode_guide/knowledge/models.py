@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 
@@ -80,3 +80,64 @@ class KnowledgeGapReportResult:
     gap: KnowledgeGap
     match_type: KnowledgeGapMatchType
     semantic_score: float | None = None
+
+    
+class KnowledgeArticleStatus(
+    str,
+    Enum,
+):
+    DRAFT = "draft"
+    IN_REVIEW = "in_review"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+    REJECTED = "rejected"
+
+
+@dataclass
+class KnowledgeArticle:
+    id: int | None
+    document_key: str
+    title: str
+    content: str
+    category: str
+    status: KnowledgeArticleStatus
+    version: int
+    source_name: str | None
+    content_hash: str
+    created_by: str
+    reviewed_by: str | None
+    valid_from: date | None
+    valid_until: date | None
+    created_at: datetime
+    updated_at: datetime
+    published_at: datetime | None = None
+    indexed_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class KnowledgeGapQuestionVerification:
+    question_id: int | None
+    question: str
+    article_found: bool
+    retrieved_parent_count: int
+
+
+@dataclass(frozen=True)
+class KnowledgeGapVerificationResult:
+    gap_id: int
+    article_id: int
+    resolved: bool
+    matched_questions: int
+    total_questions: int
+    coverage: float
+    questions: list[
+        KnowledgeGapQuestionVerification
+    ]
+
+
+@dataclass(frozen=True)
+class KnowledgeArticleVerificationResult:
+    article_id: int
+    gap_results: list[
+        KnowledgeGapVerificationResult
+    ]

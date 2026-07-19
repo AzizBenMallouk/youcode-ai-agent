@@ -81,6 +81,8 @@ class Settings:
     rag_top_k: int
     rag_score_threshold: float
 
+    knowledge_gap_minimum_coverage: float
+
     max_history_messages: int
 
     consent_version: str
@@ -132,6 +134,10 @@ def load_settings() -> Settings:
         rag_score_threshold=get_float_env(
             "RAG_SCORE_THRESHOLD",
             default=0.55,
+        ),
+        knowledge_gap_minimum_coverage=get_float_env(
+            "KNOWLEDGE_GAP_MINIMUM_COVERAGE",
+            default=0.6
         ),
         max_history_messages=get_int_env(
             "MAX_HISTORY_MESSAGES",

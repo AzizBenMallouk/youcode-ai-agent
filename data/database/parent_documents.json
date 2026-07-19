@@ -145,5 +145,29 @@
       "parent_index": 1,
       "parent_start_index": 940
     }
+  },
+  "knowledge_article:a2cf819e-10fe-49ca-b290-b435d61475c9:parent:0": {
+    "page_content": "# Informations concernant le logement\n\nYouCode ne propose pas un logement, mais il donne une bourse d'un 1000DH que vous pouvez l'utiliser pour prendre votre logement si vous n'etes pas de la ville de campus",
+    "metadata": {
+      "document_id": "knowledge_article:a2cf819e-10fe-49ca-b290-b435d61475c9",
+      "source": "admin_knowledge_base",
+      "source_type": "knowledge_article",
+      "article_id": 1,
+      "document_key": "a2cf819e-10fe-49ca-b290-b435d61475c9",
+      "title": "Informations concernant le logement",
+      "category": "practical",
+      "version": 1,
+      "status": "published",
+      "approved": true,
+      "gap_ids": [
+        1
+      ],
+      "source_name": "Responsable YouCode",
+      "published_at": "2026-07-19T08:46:02.599570",
+      "chunk_type": "parent",
+      "parent_id": "knowledge_article:a2cf819e-10fe-49ca-b290-b435d61475c9:parent:0",
+      "parent_index": 0,
+      "parent_start_index": 0
+    }
   }
 }

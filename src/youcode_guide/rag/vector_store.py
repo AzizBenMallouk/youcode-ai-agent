@@ -3,6 +3,10 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
+    FieldCondition,
+    Filter,
+    FilterSelector,
+    MatchValue,
     VectorParams,
 )
 
@@ -71,4 +75,30 @@ def create_vector_store(
             settings.qdrant_collection
         ),
         embedding=embedding_model,
+    )
+
+def delete_document_vectors(
+    *,
+    client: QdrantClient,
+    document_id: str,
+) -> None:
+    client.delete(
+        collection_name=(
+            settings.qdrant_collection
+        ),
+        points_selector=FilterSelector(
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key=(
+                            "metadata.document_id"
+                        ),
+                        match=MatchValue(
+                            value=document_id,
+                        ),
+                    )
+                ]
+            )
+        ),
+        wait=True,
     )
