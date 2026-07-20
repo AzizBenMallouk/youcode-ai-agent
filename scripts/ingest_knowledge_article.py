@@ -1,7 +1,7 @@
 import argparse
 import json
 
-from youcode_guide.knowledge.factory import (
+from youcode_guide.metier.services.article_ingestion_service import (
     create_article_ingestion_service,
 )
 

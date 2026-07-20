@@ -1,21 +1,17 @@
 from datetime import datetime, timezone
 
-from youcode_guide.database.connection import (
+from youcode_guide.database.sqlite.connection import (
     Base,
     engine,
 )
-from youcode_guide.database.schema import (
-    ConsentGrantTable,
-    RegistrationSettingsTable,
-    VisitorRequestTable,
-    KnowledgeGapTable,
-    KnowledgeGapQuestionTable
-)
-from youcode_guide.registration.models import (
-    RegistrationState,
-    UpdateRegistrationStatus,
-)
-from youcode_guide.registration.service import (
+from youcode_guide.database.sqlite.schema.consent_grant_table import ConsentGrantTable
+from youcode_guide.database.sqlite.schema.registration_settings_table import RegistrationSettingsTable
+from youcode_guide.database.sqlite.schema.visitor_request_table import VisitorRequestTable
+from youcode_guide.database.sqlite.schema.knowledge_gap_table import KnowledgeGapTable
+from youcode_guide.database.sqlite.schema.knowledge_gap_question_table import KnowledgeGapQuestionTable
+from youcode_guide.metier.models.update_registration_status import UpdateRegistrationStatus
+from youcode_guide.metier.enums.registration_state import RegistrationState
+from youcode_guide.metier.services.registration_service import (
     create_registration_service,
 )
 

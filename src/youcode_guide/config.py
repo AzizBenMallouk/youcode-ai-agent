@@ -70,7 +70,7 @@ class Settings:
     gemini_embedding_model: str
 
     qdrant_url: str
-    qdrant_collection: str
+    qdrant_document_collection: str
     qdrant_knowledge_gap_collection: str
     knowledge_gap_similarity_threshold: float
     parent_store_path: str
@@ -109,8 +109,8 @@ def load_settings() -> Settings:
         qdrant_url=get_required_env(
             "QDRANT_URL"
         ),
-        qdrant_collection=get_required_env(
-            "QDRANT_COLLECTION"
+        qdrant_document_collection=get_required_env(
+            "QDRANT_DOCUMENT_COLLECTION"
         ),
         qdrant_knowledge_gap_collection=get_required_env(
             "QDRANT_KNOWLEDGE_GAP_COLLECTION"

@@ -11,7 +11,7 @@ from langchain_core.messages import (
 
 from youcode_guide.agent.context import AgentRuntimeContext
 from youcode_guide.agent.factory import create_youcode_agent
-from youcode_guide.models import GuideResponse
+from youcode_guide.metier.models.guide_response import GuideResponse
 
 
 

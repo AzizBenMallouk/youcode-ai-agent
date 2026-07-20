@@ -1,11 +1,9 @@
 import argparse
 from datetime import datetime
 
-from youcode_guide.registration.models import (
-    RegistrationState,
-    UpdateRegistrationStatus,
-)
-from youcode_guide.registration.service import (
+from youcode_guide.metier.models.update_registration_status import UpdateRegistrationStatus
+from youcode_guide.metier.enums.registration_state import RegistrationState
+from youcode_guide.metier.services.registration_service import (
     create_registration_service,
 )
 

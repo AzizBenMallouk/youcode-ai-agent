@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from youcode_guide.consent.service import (
+from youcode_guide.metier.services.consent_service import (
     ConsentService,
 )
 

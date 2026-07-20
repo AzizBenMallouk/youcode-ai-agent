@@ -1,4 +1,4 @@
-from youcode_guide.rag.ingestion import (
+from youcode_guide.metier.ingestion.ingestion import (
     IngestionService,
 )
 

@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from youcode_guide.knowledge.factory import (
+from youcode_guide.metier.services.knowledge_article_service import (
     create_knowledge_article_service,
 )
 

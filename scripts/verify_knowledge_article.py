@@ -2,7 +2,7 @@ import argparse
 import json
 from dataclasses import asdict
 
-from youcode_guide.knowledge.factory import (
+from youcode_guide.metier.services.knowledge_gap_verification_service import (
     create_gap_verification_service,
 )
 

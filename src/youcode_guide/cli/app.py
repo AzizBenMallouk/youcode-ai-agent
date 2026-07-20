@@ -1,5 +1,4 @@
 from uuid import uuid4
-import traceback
 
 from youcode_guide.agent.service import (
     YouCodeAgentService,
@@ -7,7 +6,7 @@ from youcode_guide.agent.service import (
 from youcode_guide.cli.consent_manager import (
     TerminalConsentManager,
 )
-from youcode_guide.consent.service import (
+from youcode_guide.metier.services.consent_service import (
     create_consent_service,
 )
 
@@ -39,15 +38,14 @@ class TerminalApplication:
             if not question:
                 continue
 
-            # try:
-            self._process_question(question)
+            try:
+                self._process_question(question)
 
-            # except Exception as error:
-            #     print(
-            #         f"\nErreur : {type(error).__name__}: "
-            #         f"{error}\n"
-            #     )
-            #     traceback.print_exc()
+            except Exception as error:
+                print(
+                    f"\nErreur : {type(error).__name__}: "
+                    f"{error}\n"
+                )
 
     def _process_question(
         self,

@@ -1,9 +1,9 @@
 import argparse
 
-from youcode_guide.knowledge.factory import (
+from youcode_guide.metier.services.knowledge_gap_admin_service import (
     create_knowledge_gap_admin_service,
 )
-from youcode_guide.knowledge.models import (
+from youcode_guide.metier.enums.knowledge_gap_status import (
     KnowledgeGapStatus,
 )
 
