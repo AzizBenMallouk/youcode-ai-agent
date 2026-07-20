@@ -9,8 +9,8 @@ from langchain_core.messages import (
     ToolMessage
 )
 
-from youcode_guide.agent.context import AgentRuntimeContext
-from youcode_guide.agent.factory import create_youcode_agent
+from youcode_guide.agents.shared.context import AgentRuntimeContext
+from youcode_guide.agents.guide.factory import create_guide_agent
 from youcode_guide.metier.models.guide_response import GuideResponse
 
 
@@ -27,9 +27,9 @@ class AgentTurnResult:
     pending_consent: PendingConsent | None
 
 
-class YouCodeAgentService:
+class GuideAgentService:
     def __init__(self) -> None:
-        self.agent = create_youcode_agent()
+        self.agent = create_guide_agent()
 
     def ask(
         self,

@@ -1,54 +1,52 @@
-from datetime import date
-
 from langchain.tools import (
     ToolRuntime,
     tool,
 )
 from langchain_core.tools import BaseTool
 
-from youcode_guide.agent.context import (
+from youcode_guide.agents.shared.context import (
     AgentRuntimeContext,
 )
 from youcode_guide.metier.enums.consent_purpose import (
     ConsentPurpose,
 )
 from youcode_guide.metier.enums.language import Language
-from youcode_guide.metier.models.test_reschedule_request import (
-    TestRescheduleRequest,
+from youcode_guide.metier.models.waitlist_request import (
+    WaitlistRequest,
 )
 from youcode_guide.metier.services.visitor_request_service import (
     VisitorRequestService,
 )
 
 
-def create_test_reschedule_tool(
+def create_waitlist_tool(
     service: VisitorRequestService,
 ) -> BaseTool:
     @tool
-    def create_test_reschedule_request(
+    def create_waitlist_request(
         email: str,
         language: Language,
-        scheduled_test_date: date,
-        requested_test_date: date | None,
-        description: str | None,
+        campus: str | None,
         runtime: ToolRuntime[
             AgentRuntimeContext
         ],
     ) -> dict:
         """
-        Enregistre une demande de report d'un test
-        présentiel YouCode.
+        Enregistre un visiteur sur la liste d'attente
+        lorsque les inscriptions ne sont pas ouvertes.
 
-        Utiliser uniquement après avoir obtenu :
-        - l'email de candidature ;
-        - la date actuellement prévue ;
-        - le consentement explicite.
+        Utiliser seulement après :
+        1. avoir vérifié le statut des inscriptions ;
+        2. avoir informé le visiteur de la finalité ;
+        3. avoir obtenu son email ;
+        4. avoir obtenu son consentement explicite.
 
-        Ce tool enregistre seulement une demande.
-        Il ne confirme jamais que le report est accepté.
+        Ne jamais utiliser si les inscriptions sont ouvertes.
         """
         purpose = (
-            ConsentPurpose.TEST_RESCHEDULE.value
+            ConsentPurpose
+            .WAITLIST_NOTIFICATION
+            .value
         )
 
         token = (
@@ -70,25 +68,15 @@ def create_test_reschedule_tool(
             }
 
         try:
-            result = (
-                service.create_test_reschedule(
-                    TestRescheduleRequest(
-                        session_id=(
-                            runtime
-                            .context
-                            .session_id
-                        ),
-                        email=email,
-                        language=language,
-                        scheduled_test_date=(
-                            scheduled_test_date
-                        ),
-                        requested_test_date=(
-                            requested_test_date
-                        ),
-                        description=description,
-                        consent_token=token,
-                    )
+            result = service.create_waitlist(
+                WaitlistRequest(
+                    session_id=(
+                        runtime.context.session_id
+                    ),
+                    email=email,
+                    language=language,
+                    campus=campus,
+                    consent_token=token,
                 )
             )
 
@@ -108,4 +96,4 @@ def create_test_reschedule_tool(
                 "message": str(error),
             }
 
-    return create_test_reschedule_request
+    return create_waitlist_request

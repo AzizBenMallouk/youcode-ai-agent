@@ -4,7 +4,7 @@ from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 
 from youcode_guide.config import settings
-from youcode_guide.agent.llm.embeddings import (
+from youcode_guide.agents.shared.embeddings import (
     create_embedding_model,
 )
 from youcode_guide.metier.ingestion.parent_store import (

@@ -18,7 +18,7 @@ from youcode_guide.metier.helpers.entity_extractor import (
 from youcode_guide.metier.models.knowledge_gap import KnowledgeGap
 from youcode_guide.metier.models.semantic_knowledge_gap_match import SemanticKnowledgeGapMatch
 from youcode_guide.config import settings
-from youcode_guide.agent.llm.embeddings import (
+from youcode_guide.agents.shared.embeddings import (
     create_embedding_model,
 )
 from youcode_guide.database.vector.vector_store import (

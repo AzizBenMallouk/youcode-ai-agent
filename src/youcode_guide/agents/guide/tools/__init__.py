@@ -13,22 +13,22 @@ from youcode_guide.metier.services.knowledge_gap_service import (
     create_knowledge_gap_service,
 )
 
-from youcode_guide.agent.tools.support_tool_factory import (
+from youcode_guide.agents.guide.tools.support_tool_factory import (
     create_access_support_tool,
 )
-from youcode_guide.agent.tools.knowledge_tool_factory import (
+from youcode_guide.agents.guide.tools.knowledge_tool_factory import (
     create_knowledge_tool,
 )
-from youcode_guide.agent.tools.registration_status_tool_factory import (
+from youcode_guide.agents.guide.tools.registration_status_tool_factory import (
     create_registration_tool,
 )
-from youcode_guide.agent.tools.test_reschedule_tool_factory import (
+from youcode_guide.agents.guide.tools.test_reschedule_tool_factory import (
     create_test_reschedule_tool,
 )
-from youcode_guide.agent.tools.newsletter_tool_factory import (
+from youcode_guide.agents.guide.tools.newsletter_tool_factory import (
     create_waitlist_tool,
 )
-from youcode_guide.agent.tools.report_knowledge_gap_tool_factory import (
+from youcode_guide.agents.guide.tools.report_knowledge_gap_tool_factory import (
     create_report_knowledge_gap_tool,
 )
 

@@ -1,7 +1,7 @@
 from uuid import NAMESPACE_URL, uuid5
 
 from youcode_guide.config import settings
-from youcode_guide.agent.llm.embeddings import (
+from youcode_guide.agents.shared.embeddings import (
     create_embedding_model,
 )
 from youcode_guide.metier.ingestion.loaders import (

@@ -1,17 +1,17 @@
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
-from youcode_guide.agent.context import AgentRuntimeContext
-from youcode_guide.agent.middlewares.handle_tool_errors import handle_tool_errors
-from youcode_guide.agent.llm.prompt import (
+from youcode_guide.agents.shared.context import AgentRuntimeContext
+from youcode_guide.agents.shared.middlewares.handle_tool_errors import handle_tool_errors
+from youcode_guide.agents.guide.prompt import (
     YOUCODE_AGENT_SYSTEM_PROMPT,
 )
-from youcode_guide.agent.llm.llm import create_chat_model
+from youcode_guide.agents.shared.llm import create_chat_model
 from youcode_guide.metier.models.guide_response import GuideResponse
-from youcode_guide.agent.tools import create_youcode_tools
+from youcode_guide.agents.guide.tools import create_youcode_tools
 
 
-def create_youcode_agent():
+def create_guide_agent():
     model = create_chat_model()
     tools = create_youcode_tools()
     checkpointer = InMemorySaver()

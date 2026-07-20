@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from youcode_guide.agent.service import (
-    YouCodeAgentService,
+from youcode_guide.agents.guide.service import (
+    GuideAgentService,
 )
 from youcode_guide.cli.consent_manager import (
     TerminalConsentManager,
@@ -15,7 +15,7 @@ class TerminalApplication:
     def __init__(self) -> None:
         self.session_id = str(uuid4())
 
-        self.agent_service = YouCodeAgentService()
+        self.agent_service = GuideAgentService()
 
         self.consent_manager = TerminalConsentManager(
             consent_service= create_consent_service(),

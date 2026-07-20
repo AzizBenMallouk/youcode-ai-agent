@@ -4,7 +4,7 @@ from langchain.tools import (
 )
 from langchain_core.tools import BaseTool
 
-from youcode_guide.agent.context import AgentRuntimeContext
+from youcode_guide.agents.shared.context import AgentRuntimeContext
 from youcode_guide.metier.enums.consent_purpose import ConsentPurpose
 from youcode_guide.metier.enums.language import Language
 from youcode_guide.metier.models.access_support_request import AccessSupportRequest

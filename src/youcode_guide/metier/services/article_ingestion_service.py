@@ -29,7 +29,7 @@ from youcode_guide.database.vector.document_store import (
 from youcode_guide.database.sqlite.connection import (
     SessionFactory,
 )
-from youcode_guide.agent.llm.embeddings import create_embedding_model
+from youcode_guide.agents.shared.embeddings import create_embedding_model
 from youcode_guide.database.vector.vector_store import create_qdrant_client
 from youcode_guide.database.vector.document_store import create_document_vector_store
 
