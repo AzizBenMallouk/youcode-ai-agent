@@ -7,7 +7,7 @@ from youcode_guide.agents.guide.prompt import (
     YOUCODE_AGENT_SYSTEM_PROMPT,
 )
 from youcode_guide.agents.shared.llm import create_chat_model
-from youcode_guide.metier.models.guide_response import GuideResponse
+from youcode_guide.agents.guide.models import GuideResponse
 from youcode_guide.agents.guide.tools import create_youcode_tools
 
 

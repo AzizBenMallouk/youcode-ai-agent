@@ -9,6 +9,8 @@ from youcode_guide.database.sqlite.schema.registration_settings_table import Reg
 from youcode_guide.database.sqlite.schema.visitor_request_table import VisitorRequestTable
 from youcode_guide.database.sqlite.schema.knowledge_gap_table import KnowledgeGapTable
 from youcode_guide.database.sqlite.schema.knowledge_gap_question_table import KnowledgeGapQuestionTable
+from youcode_guide.database.sqlite.schema.knowledge_article_table import KnowledgeArticleTable
+from youcode_guide.database.sqlite.schema.knowledge_gap_article_table import KnowledgeGapArticleTable
 from youcode_guide.metier.models.update_registration_status import UpdateRegistrationStatus
 from youcode_guide.metier.enums.registration_state import RegistrationState
 from youcode_guide.metier.services.registration_service import (
@@ -24,6 +26,9 @@ def main() -> None:
     _ = VisitorRequestTable
     _ = KnowledgeGapTable
     _ = KnowledgeGapQuestionTable
+    _ = KnowledgeArticleTable
+    _ = KnowledgeGapArticleTable
+
 
     Base.metadata.create_all(engine)
 

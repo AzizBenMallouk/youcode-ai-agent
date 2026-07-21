@@ -93,10 +93,42 @@ class VisitorRequestTable(Base):
         nullable=True,
     )
 
+    # ID de la session retournée par l'API externe.
+    external_session_id: Mapped[
+        str | None
+    ] = mapped_column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
+
+    # Date et heure proposées par l'agent.
+    proposed_test_date: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Explication de l'acceptation ou du refus.
+    decision_reason: Mapped[
+        str | None
+    ] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     consent_id: Mapped[str] = mapped_column(
         ForeignKey("consent_grants.id"),
         unique=True,
         nullable=False,
+    )
+
+    processed_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     created_at: Mapped[
