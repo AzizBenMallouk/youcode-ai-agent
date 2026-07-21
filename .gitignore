@@ -1,21 +1,7 @@
-# Python
+.env
+.venv/
 __pycache__/
-*.py[cod]
 .pytest_cache/
 .ruff_cache/
-
-# Environment
-.venv/
-.env
-
-# Databases containing personal information
-data/database/*.db
-data/database/*.sqlite
-data/database/*.sqlite3
-
-# Logs
-*.log
-
-# IDE
-.vscode/
-.idea/
+data/*.db
+data/parent_store/
