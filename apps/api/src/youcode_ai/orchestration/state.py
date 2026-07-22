@@ -45,6 +45,42 @@ class SupportDraft(
     ambiguities: list[str]
 
 
+class NewsletterDraft(
+    TypedDict,
+    total=False,
+):
+    """
+    Informations Newsletter collectées avant
+    l'enregistrement SQL.
+    """
+
+    action: Literal[
+        "subscribe",
+        "unsubscribe",
+        "unknown",
+    ]
+
+    language: Literal[
+        "fr",
+        "en",
+        "ar",
+        "darija",
+    ]
+
+    email: str
+
+    topics: list[
+        Literal[
+            "full_program_registration",
+            "bootcamps",
+            "events",
+            "youcode_news",
+        ]
+    ]
+
+    ambiguities: list[str]
+
+
 class YouCodeState(
     TypedDict,
     total=False,
@@ -55,6 +91,11 @@ class YouCodeState(
     LangGraph conserve cet objet entre les
     différents messages d'une conversation.
     """
+
+
+    # -------------------------------
+    # Conversation
+    # -------------------------------
 
     # Historique complet de la conversation.
     messages: Annotated[
@@ -91,7 +132,7 @@ class YouCodeState(
 
 
     # -------------------------------
-    # newsletter workflow
+    # Newsletter workflow
     # -------------------------------
 
     newsletter_phase: Literal[
@@ -101,6 +142,13 @@ class YouCodeState(
         "completed",
         "cancelled",
     ]
+
+    newsletter_draft: NewsletterDraft
+
+    newsletter_consent_confirmed: bool
+
+    subscription_reference: str | None
+
 
     # -------------------------------
     # Support workflow

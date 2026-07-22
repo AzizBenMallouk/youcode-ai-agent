@@ -5,6 +5,10 @@ from youcode_ai.orchestration.state import (
 )
 
 
+# -------------------------------------
+# Types de routage globaux
+# -------------------------------------
+
 EntryRoute = Literal[
     "supervisor",
     "support_extract",
@@ -13,18 +17,24 @@ EntryRoute = Literal[
     "support_session_decision",
     "support_confirm_session",
     "support_alternative",
-    "newsletter",
+    "newsletter_extract",
+    "newsletter_consent",
+    "newsletter_process",
 ]
 
 
 SupervisorRoute = Literal[
     "guide",
     "support_extract",
-    "newsletter",
+    "newsletter_extract",
     "clarification",
     "out_of_scope",
 ]
 
+
+# -------------------------------------
+# Types de routage Support
+# -------------------------------------
 
 ExtractionRoute = Literal[
     "missing",
@@ -58,6 +68,34 @@ SessionDecisionRoute = Literal[
 ]
 
 
+# -------------------------------------
+# Types de routage Newsletter
+# -------------------------------------
+
+NewsletterEntryRoute = Literal[
+    "newsletter_extract",
+    "newsletter_consent",
+    "newsletter_process",
+    "end",
+]
+
+
+NewsletterExtractionRoute = Literal[
+    "newsletter_process",
+    "end",
+]
+
+
+NewsletterConsentRoute = Literal[
+    "newsletter_process",
+    "end",
+]
+
+
+# -------------------------------------
+# Entrée globale
+# -------------------------------------
+
 def route_graph_entry(
     state: YouCodeState,
 ) -> EntryRoute:
@@ -84,19 +122,22 @@ def route_graph_entry(
             return support_route
 
     if active_agent == "newsletter":
-        newsletter_phase = state.get(
-            "newsletter_phase"
+        newsletter_route = (
+            _get_newsletter_phase_route(
+                state
+            )
         )
 
-        if newsletter_phase not in {
-            None,
-            "completed",
-            "cancelled",
-        }:
-            return "newsletter"
+        if newsletter_route != "end":
+            return newsletter_route
 
+    # Aucun workflow actif ou workflow terminé.
     return "supervisor"
 
+
+# -------------------------------------
+# Supervisor
+# -------------------------------------
 
 def route_after_supervisor(
     state: YouCodeState,
@@ -112,12 +153,10 @@ def route_after_supervisor(
         return "guide"
 
     if route == "support":
-        # Une nouvelle demande Support commence
-        # par l'extraction des informations.
         return "support_extract"
 
     if route == "newsletter":
-        return "newsletter"
+        return "newsletter_extract"
 
     if route == "out_of_scope":
         return "out_of_scope"
@@ -125,26 +164,16 @@ def route_after_supervisor(
     return "clarification"
 
 
+# -------------------------------------
+# Support
+# -------------------------------------
+
 def route_after_extraction(
     state: YouCodeState,
 ) -> ExtractionRoute:
     """
     Choisit la prochaine étape après l'extraction
     des informations Support.
-
-    collecting :
-        il manque des informations ;
-
-    awaiting_consent :
-        le brouillon est complet et le
-        consentement doit être demandé ;
-
-    processing :
-        le consentement est confirmé et la
-        demande peut être enregistrée ;
-
-    autre :
-        fin du tour ou workflow terminé.
     """
 
     support_phase = state.get(
@@ -176,8 +205,8 @@ def route_support_entry(
     state: YouCodeState,
 ) -> SupportEntryRoute:
     """
-    Sélectionne le node Support correspondant
-    à la phase actuelle.
+    Sélectionne le node Support correspondant à
+    la phase actuelle.
     """
 
     return _get_support_phase_route(
@@ -189,8 +218,8 @@ def _get_support_phase_route(
     state: YouCodeState,
 ) -> SupportEntryRoute:
     """
-    Mapping centralisé entre support_phase et
-    les nodes du workflow Support.
+    Mapping entre support_phase et les nodes du
+    workflow Support.
     """
 
     support_phase = state.get(
@@ -227,8 +256,6 @@ def _get_support_phase_route(
     ):
         return "support_alternative"
 
-    # Phases completed, cancelled, absentes
-    # ou incorrectes.
     return "end"
 
 
@@ -236,12 +263,8 @@ def route_after_consent(
     state: YouCodeState,
 ) -> ConsentRoute:
     """
-    Après l'analyse du consentement :
-
-    - accepté : traitement de la demande ;
-    - refusé : fin du tour ;
-    - ambigu : fin du tour après avoir demandé
-      une réponse oui/non.
+    Continue vers le traitement uniquement après
+    un consentement Support explicite.
     """
 
     support_phase = state.get(
@@ -266,13 +289,8 @@ def route_after_session_decision(
     state: YouCodeState,
 ) -> SessionDecisionRoute:
     """
-    Après la réponse du candidat concernant la
-    session proposée :
-
-    - acceptée : confirmation de la proposition ;
-    - refusée : recherche d'une autre session ;
-    - ambiguë : fin du tour après avoir demandé
-      une réponse oui/non.
+    Route la décision concernant une proposition
+    de session.
     """
 
     support_phase = state.get(
@@ -290,5 +308,101 @@ def route_after_session_decision(
         == "searching_alternative"
     ):
         return "support_alternative"
+
+    return "end"
+
+
+# -------------------------------------
+# Newsletter
+# -------------------------------------
+
+def route_newsletter_entry(
+    state: YouCodeState,
+) -> NewsletterEntryRoute:
+    """
+    Sélectionne le node Newsletter correspondant
+    à la phase actuelle.
+    """
+
+    return _get_newsletter_phase_route(
+        state
+    )
+
+
+def _get_newsletter_phase_route(
+    state: YouCodeState,
+) -> NewsletterEntryRoute:
+    """
+    Mapping entre newsletter_phase et les nodes
+    du workflow Newsletter.
+    """
+
+    newsletter_phase = state.get(
+        "newsletter_phase"
+    )
+
+    if newsletter_phase == "collecting":
+        return "newsletter_extract"
+
+    if (
+        newsletter_phase
+        == "awaiting_consent"
+    ):
+        return "newsletter_consent"
+
+    if newsletter_phase == "processing":
+        return "newsletter_process"
+
+    # completed, cancelled, phase absente ou
+    # incorrecte.
+    return "end"
+
+
+def route_after_newsletter_extraction(
+    state: YouCodeState,
+) -> NewsletterExtractionRoute:
+    """
+    Après l'extraction :
+
+    - une désinscription complète passe
+      directement au traitement ;
+    - une inscription attend le consentement ;
+    - un brouillon incomplet attend la prochaine
+      réponse du visiteur.
+    """
+
+    if (
+        state.get("newsletter_phase")
+        == "processing"
+    ):
+        return "newsletter_process"
+
+    return "end"
+
+
+def route_after_newsletter_consent(
+    state: YouCodeState,
+) -> NewsletterConsentRoute:
+    """
+    Après le consentement Newsletter :
+
+    - accepté : enregistrement SQL ;
+    - refusé ou ambigu : fin du tour.
+    """
+
+    newsletter_phase = state.get(
+        "newsletter_phase"
+    )
+
+    consent_confirmed = state.get(
+        "newsletter_consent_confirmed",
+        False,
+    )
+
+    if (
+        newsletter_phase == "processing"
+        and consent_confirmed
+    ):
+        return "newsletter_process"
 
     return "end"

@@ -108,8 +108,13 @@ class Settings(BaseSettings):
 
     # External services
     registration_api_url: str
+    registration_api_timeout: float = 10.0
+    registration_api_key: str | None = None
+
     test_session_api_url: str
+
     email_api_url: str
+
 
     external_api_timeout: float = Field(
         gt=0,
@@ -132,6 +137,12 @@ class Settings(BaseSettings):
         ge=1,
         le=1440,
     )
+
+    # Fast API
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
 
     @model_validator(mode="after")
     def validate_provider_configuration(

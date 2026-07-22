@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from youcode_ai.api.routes.health import (
-    router as health_router,
+from youcode_ai.api.routes.chat import (
+    router as chat_router,
 )
 
 
@@ -9,6 +9,7 @@ api_router = APIRouter(
     prefix="/api/v1"
 )
 
+
 api_router.include_router(
-    health_router
+    chat_router
 )

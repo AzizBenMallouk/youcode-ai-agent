@@ -1,4 +1,9 @@
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import (
+    delete,
+    select,
+)
 from sqlalchemy.orm import (
     Session,
     selectinload,
@@ -12,6 +17,7 @@ from youcode_ai.infrastructure.database.repositories.base import (
 )
 from youcode_ai.infrastructure.database.tables import (
     NewsletterSubscriptionTable,
+    NewsletterPreferenceTable,
 )
 
 
@@ -94,3 +100,77 @@ class NewsletterRepository(
                 statement
             ).all()
         )
+
+    def activate(
+        self,
+        subscription: NewsletterSubscriptionTable,
+        *,
+        language: str,
+        consent_id: str,
+    ) -> NewsletterSubscriptionTable:
+        now = datetime.now(timezone.utc)
+
+        subscription.status = "active"
+        subscription.language = language
+        subscription.consent_id = consent_id
+        subscription.subscribed_at = now
+        subscription.unsubscribed_at = None
+        subscription.updated_at = now
+
+        self.session.flush()
+
+        return subscription
+
+    def deactivate(
+        self,
+        subscription: NewsletterSubscriptionTable,
+    ) -> NewsletterSubscriptionTable:
+        now = datetime.now(timezone.utc)
+
+        subscription.status = "unsubscribed"
+        subscription.unsubscribed_at = now
+        subscription.updated_at = now
+
+        self.session.flush()
+
+        return subscription
+
+    def replace_preferences(
+        self,
+        *,
+        subscription_id: str,
+        topics: list[str],
+    ) -> None:
+        """
+        Remplace les anciennes préférences par
+        la nouvelle sélection.
+        """
+
+        self.session.execute(
+            delete(
+                NewsletterPreferenceTable
+            ).where(
+                NewsletterPreferenceTable
+                .subscription_id
+                == subscription_id
+            )
+        )
+
+        unique_topics = list(
+            dict.fromkeys(topics)
+        )
+
+        now = datetime.now(timezone.utc)
+
+        for topic in unique_topics:
+            self.session.add(
+                NewsletterPreferenceTable(
+                    subscription_id=(
+                        subscription_id
+                    ),
+                    topic=topic,
+                    created_at=now,
+                )
+            )
+
+        self.session.flush()

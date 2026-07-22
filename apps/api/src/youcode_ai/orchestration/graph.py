@@ -1,9 +1,5 @@
-from typing import Any
 from functools import lru_cache
 
-from langchain_core.messages import (
-    AIMessage,
-)
 from langgraph.checkpoint.memory import (
     InMemorySaver,
 )
@@ -16,6 +12,9 @@ from langgraph.graph import (
 from youcode_ai.agents.guide.nodes import (
     create_guide_nodes,
 )
+from youcode_ai.agents.newsletter.nodes import (
+    create_newsletter_nodes,
+)
 from youcode_ai.agents.supervisor.nodes import (
     create_supervisor_nodes,
 )
@@ -24,45 +23,16 @@ from youcode_ai.agents.support.nodes import (
 )
 from youcode_ai.orchestration.routing import (
     route_after_consent,
+    route_after_extraction,
+    route_after_newsletter_consent,
+    route_after_newsletter_extraction,
     route_after_session_decision,
     route_after_supervisor,
     route_graph_entry,
-    route_after_extraction,
 )
 from youcode_ai.orchestration.state import (
     YouCodeState,
 )
-
-
-def newsletter_not_implemented(
-    state: YouCodeState,
-) -> dict[str, Any]:
-    """
-    Node temporaire jusqu'à l'implémentation du
-    Newsletter Agent.
-    """
-
-    answer = (
-        "L'inscription aux notifications sera "
-        "bientôt disponible."
-    )
-
-    return {
-        "active_agent": "newsletter",
-        "newsletter_phase": "completed",
-        "requires_human": False,
-        "messages": [
-            AIMessage(
-                content=answer
-            )
-        ],
-        "final_response": {
-            "status": "not_available",
-            "language": "fr",
-            "answer": answer,
-            "requires_human": False,
-        },
-    }
 
 
 @lru_cache(maxsize=1)
@@ -79,8 +49,12 @@ def create_youcode_graph():
 
     support_nodes = SupportNodes()
 
+    newsletter_nodes = (
+        create_newsletter_nodes()
+    )
+
     # ---------------------------------
-    # Supervisor
+    # Nodes Supervisor
     # ---------------------------------
 
     workflow.add_node(
@@ -99,7 +73,7 @@ def create_youcode_graph():
     )
 
     # ---------------------------------
-    # Guide
+    # Node Guide
     # ---------------------------------
 
     workflow.add_node(
@@ -108,22 +82,23 @@ def create_youcode_graph():
     )
 
     # ---------------------------------
-    # Support
+    # Nodes Support
     # ---------------------------------
 
     workflow.add_node(
         "support_extract",
-        support_nodes.extract_information,
+        support_nodes.extract_request,
     )
 
     workflow.add_node(
         "support_missing",
-        support_nodes.request_missing_information,
+        support_nodes
+        .request_missing_information,
     )
 
     workflow.add_node(
         "support_consent",
-        support_nodes.classify_consent,
+        support_nodes.handle_consent,
     )
 
     workflow.add_node(
@@ -133,30 +108,41 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_session_decision",
-        support_nodes.classify_session_proposal,
+        support_nodes
+        .handle_session_decision,
     )
 
     workflow.add_node(
         "support_confirm_session",
-        support_nodes.confirm_session_proposal,
+        support_nodes.confirm_session,
     )
 
     workflow.add_node(
         "support_alternative",
-        support_nodes.search_alternative_session,
+        support_nodes.propose_alternative,
     )
 
     # ---------------------------------
-    # Newsletter temporaire
+    # Nodes Newsletter
     # ---------------------------------
 
     workflow.add_node(
-        "newsletter",
-        newsletter_not_implemented,
+        "newsletter_extract",
+        newsletter_nodes.extract,
+    )
+
+    workflow.add_node(
+        "newsletter_consent",
+        newsletter_nodes.consent,
+    )
+
+    workflow.add_node(
+        "newsletter_process",
+        newsletter_nodes.process,
     )
 
     # ---------------------------------
-    # Point d'entrée
+    # Entrée globale
     # ---------------------------------
 
     workflow.add_conditional_edges(
@@ -164,6 +150,7 @@ def create_youcode_graph():
         route_graph_entry,
         {
             "supervisor": "supervisor",
+
             "support_extract": (
                 "support_extract"
             ),
@@ -182,12 +169,21 @@ def create_youcode_graph():
             "support_alternative": (
                 "support_alternative"
             ),
-            "newsletter": "newsletter",
+
+            "newsletter_extract": (
+                "newsletter_extract"
+            ),
+            "newsletter_consent": (
+                "newsletter_consent"
+            ),
+            "newsletter_process": (
+                "newsletter_process"
+            ),
         },
     )
 
     # ---------------------------------
-    # Routage du Supervisor
+    # Routage Supervisor
     # ---------------------------------
 
     workflow.add_conditional_edges(
@@ -198,7 +194,9 @@ def create_youcode_graph():
             "support_extract": (
                 "support_extract"
             ),
-            "newsletter": "newsletter",
+            "newsletter_extract": (
+                "newsletter_extract"
+            ),
             "clarification": (
                 "clarification"
             ),
@@ -209,7 +207,7 @@ def create_youcode_graph():
     )
 
     # ---------------------------------
-    # Routage interne Support
+    # Workflow Support
     # ---------------------------------
 
     workflow.add_conditional_edges(
@@ -239,6 +237,11 @@ def create_youcode_graph():
         },
     )
 
+    workflow.add_edge(
+        "support_process",
+        END,
+    )
+
     workflow.add_conditional_edges(
         "support_session_decision",
         route_after_session_decision,
@@ -253,13 +256,6 @@ def create_youcode_graph():
         },
     )
 
-    # Ces nodes produisent directement une
-    # réponse finale.
-    workflow.add_edge(
-        "support_process",
-        END,
-    )
-
     workflow.add_edge(
         "support_confirm_session",
         END,
@@ -271,7 +267,38 @@ def create_youcode_graph():
     )
 
     # ---------------------------------
-    # Fin des autres workflows
+    # Workflow Newsletter
+    # ---------------------------------
+
+    workflow.add_conditional_edges(
+        "newsletter_extract",
+        route_after_newsletter_extraction,
+        {
+            "newsletter_process": (
+                "newsletter_process"
+            ),
+            "end": END,
+        },
+    )
+
+    workflow.add_conditional_edges(
+        "newsletter_consent",
+        route_after_newsletter_consent,
+        {
+            "newsletter_process": (
+                "newsletter_process"
+            ),
+            "end": END,
+        },
+    )
+
+    workflow.add_edge(
+        "newsletter_process",
+        END,
+    )
+
+    # ---------------------------------
+    # Autres fins
     # ---------------------------------
 
     workflow.add_edge(
@@ -286,11 +313,6 @@ def create_youcode_graph():
 
     workflow.add_edge(
         "out_of_scope",
-        END,
-    )
-
-    workflow.add_edge(
-        "newsletter",
         END,
     )
 
