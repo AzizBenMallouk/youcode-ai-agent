@@ -1,5 +1,9 @@
+from typing import Any
 from functools import lru_cache
 
+from langchain_core.messages import (
+    AIMessage,
+)
 from langgraph.checkpoint.memory import (
     InMemorySaver,
 )
@@ -9,45 +13,117 @@ from langgraph.graph import (
     StateGraph,
 )
 
-from youcode_ai.agents.support.nodes import (
-    create_support_nodes,
-)
 from youcode_ai.agents.guide.nodes import (
     create_guide_nodes,
 )
+from youcode_ai.agents.supervisor.nodes import (
+    create_supervisor_nodes,
+)
+from youcode_ai.agents.support.nodes import (
+    SupportNodes,
+)
 from youcode_ai.orchestration.routing import (
     route_after_consent,
-    route_support_entry,
-    route_after_session_decision
+    route_after_session_decision,
+    route_after_supervisor,
+    route_graph_entry,
+    route_after_extraction,
 )
 from youcode_ai.orchestration.state import (
     YouCodeState,
 )
 
-def create_youcode_graph():
-    support_nodes = create_support_nodes()
-    guide_nodes = create_guide_nodes()
 
+def newsletter_not_implemented(
+    state: YouCodeState,
+) -> dict[str, Any]:
+    """
+    Node temporaire jusqu'à l'implémentation du
+    Newsletter Agent.
+    """
+
+    answer = (
+        "L'inscription aux notifications sera "
+        "bientôt disponible."
+    )
+
+    return {
+        "active_agent": "newsletter",
+        "newsletter_phase": "completed",
+        "requires_human": False,
+        "messages": [
+            AIMessage(
+                content=answer
+            )
+        ],
+        "final_response": {
+            "status": "not_available",
+            "language": "fr",
+            "answer": answer,
+            "requires_human": False,
+        },
+    }
+
+
+@lru_cache(maxsize=1)
+def create_youcode_graph():
     workflow = StateGraph(
         YouCodeState
     )
 
+    supervisor_nodes = (
+        create_supervisor_nodes()
+    )
+
+    guide_nodes = create_guide_nodes()
+
+    support_nodes = SupportNodes()
+
+    # ---------------------------------
+    # Supervisor
+    # ---------------------------------
+
+    workflow.add_node(
+        "supervisor",
+        supervisor_nodes.route_message,
+    )
+
+    workflow.add_node(
+        "clarification",
+        supervisor_nodes.clarification,
+    )
+
+    workflow.add_node(
+        "out_of_scope",
+        supervisor_nodes.out_of_scope,
+    )
+
+    # ---------------------------------
+    # Guide
+    # ---------------------------------
+
+    workflow.add_node(
+        "guide",
+        guide_nodes.answer_question,
+    )
+
+    # ---------------------------------
+    # Support
+    # ---------------------------------
+
     workflow.add_node(
         "support_extract",
-        support_nodes.extract_information,
+        support_nodes.extract_request,
     )
 
     workflow.add_node(
         "support_missing",
-        (
-            support_nodes
-            .request_missing_information
-        ),
+        support_nodes.request_missing_information,
     )
 
     workflow.add_node(
         "support_consent",
-        support_nodes.classify_consent,
+        support_nodes.handle_consent,
     )
 
     workflow.add_node(
@@ -57,31 +133,37 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_session_decision",
-        support_nodes.classify_session_proposal,
+        support_nodes.handle_session_decision,
     )
 
     workflow.add_node(
         "support_confirm_session",
-        support_nodes.confirm_session_proposal,
+        support_nodes.confirm_session,
     )
 
     workflow.add_node(
         "support_alternative",
-        support_nodes.search_alternative_session,
+        support_nodes.propose_alternative,
     )
+
+    # ---------------------------------
+    # Newsletter temporaire
+    # ---------------------------------
 
     workflow.add_node(
-        "guide",
-        guide_nodes.answer_question,
+        "newsletter",
+        newsletter_not_implemented,
     )
 
-    # Chaque nouveau message entre ici.
-    # Le routeur regarde la phase Support
-    # conservée dans le state.
+    # ---------------------------------
+    # Point d'entrée
+    # ---------------------------------
+
     workflow.add_conditional_edges(
         START,
-        route_support_entry,
+        route_graph_entry,
         {
+            "supervisor": "supervisor",
             "support_extract": (
                 "support_extract"
             ),
@@ -100,26 +182,52 @@ def create_youcode_graph():
             "support_alternative": (
                 "support_alternative"
             ),
+            "newsletter": "newsletter",
         },
     )
 
-    # Après l'extraction LLM, Python vérifie
-    # les informations manquantes.
-    workflow.add_edge(
-        "support_extract",
-        "support_missing",
+    # ---------------------------------
+    # Routage du Supervisor
+    # ---------------------------------
+
+    workflow.add_conditional_edges(
+        "supervisor",
+        route_after_supervisor,
+        {
+            "guide": "guide",
+            "support_extract": (
+                "support_extract"
+            ),
+            "newsletter": "newsletter",
+            "clarification": (
+                "clarification"
+            ),
+            "out_of_scope": (
+                "out_of_scope"
+            ),
+        },
     )
 
-    # Une question est produite, puis le tour
-    # actuel se termine.
+    # ---------------------------------
+    # Routage interne Support
+    # ---------------------------------
+
+    workflow.add_conditional_edges(
+        "support_extract",
+        route_after_extraction,
+        {
+            "missing": "support_missing",
+            "consent": "support_missing",
+            "process": "support_process",
+            "end": END,
+        },
+    )
+
     workflow.add_edge(
         "support_missing",
         END,
     )
 
-    # Après le consentement :
-    # - accepted → traitement ;
-    # - refused/unclear → fin du tour.
     workflow.add_conditional_edges(
         "support_consent",
         route_after_consent,
@@ -145,6 +253,13 @@ def create_youcode_graph():
         },
     )
 
+    # Ces nodes produisent directement une
+    # réponse finale.
+    workflow.add_edge(
+        "support_process",
+        END,
+    )
+
     workflow.add_edge(
         "support_confirm_session",
         END,
@@ -155,36 +270,30 @@ def create_youcode_graph():
         END,
     )
 
-    workflow.add_edge(
-        "support_process",
-        END,
-    )
-
-    workflow.add_edge(
-        START,
-        "guide",
-    )
+    # ---------------------------------
+    # Fin des autres workflows
+    # ---------------------------------
 
     workflow.add_edge(
         "guide",
         END,
     )
 
-    checkpointer = InMemorySaver()
+    workflow.add_edge(
+        "clarification",
+        END,
+    )
+
+    workflow.add_edge(
+        "out_of_scope",
+        END,
+    )
+
+    workflow.add_edge(
+        "newsletter",
+        END,
+    )
 
     return workflow.compile(
-        checkpointer=checkpointer
+        checkpointer=InMemorySaver(),
     )
-
-
-@lru_cache(maxsize=1)
-def get_youcode_graph():
-    """
-    Retourne toujours la même instance.
-
-    C'est indispensable avec InMemorySaver :
-    recréer le graph ferait perdre les
-    conversations précédentes.
-    """
-
-    return create_youcode_graph()

@@ -1,132 +1,150 @@
+import logging
+from typing import Any
+
 from langchain_core.messages import (
     HumanMessage,
 )
 
-from youcode_ai.agents.support.schemas import (
-    SupportWorkflowResponse,
-)
 from youcode_ai.orchestration.graph import (
-    get_youcode_graph,
+    create_youcode_graph,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 class YouCodeOrchestrationService:
     def __init__(self) -> None:
-        self.graph = get_youcode_graph()
+        self.graph = create_youcode_graph()
 
     def invoke(
         self,
         *,
-        message: str,
         session_id: str,
-    ) -> SupportWorkflowResponse:
-        normalized_message = message.strip()
-        normalized_session_id = (
+        message: str,
+    ) -> dict[str, Any]:
+        """
+        Envoie un nouveau message dans le graph.
+
+        Le thread_id permet au checkpointer
+        LangGraph de retrouver le state de cette
+        conversation.
+        """
+
+        clean_session_id = (
             session_id.strip()
         )
 
-        if not normalized_message:
+        clean_message = message.strip()
+
+        if not clean_session_id:
             raise ValueError(
-                "Message cannot be empty."
+                "session_id is required."
             )
 
-        if not normalized_session_id:
-            raise ValueError(
-                "Session ID cannot be empty."
-            )
-
-        result = self.graph.invoke(
-            {
-                "messages": [
-                    HumanMessage(
-                        content=(
-                            normalized_message
-                        )
-                    )
-                ],
-                "session_id": (
-                    normalized_session_id
+        if not clean_message:
+            return {
+                "status": "invalid_message",
+                "language": "fr",
+                "answer": (
+                    "Veuillez écrire un message."
                 ),
-            },
-            config=self._create_config(
-                normalized_session_id
-            ),
-        )
+                "requires_human": False,
+            }
 
-        return self._extract_response(
-            result
-        )
+        try:
+            result = self.graph.invoke(
+                {
+                    "session_id": (
+                        clean_session_id
+                    ),
+                    "messages": [
+                        HumanMessage(
+                            content=clean_message
+                        )
+                    ],
 
-    async def ainvoke(
+                    # Réinitialisation des champs
+                    # propres à ce nouveau tour.
+                    "final_response": None,
+                    "requires_human": False,
+                },
+                config={
+                    "configurable": {
+                        "thread_id": (
+                            clean_session_id
+                        ),
+                    }
+                },
+            )
+
+            final_response = result.get(
+                "final_response"
+            )
+
+            if isinstance(
+                final_response,
+                dict,
+            ):
+                return final_response
+
+            logger.error(
+                "Graph returned no valid final "
+                "response for session %s.",
+                clean_session_id,
+            )
+
+            return self._technical_error()
+
+        except Exception:
+            logger.exception(
+                "Graph execution failed for "
+                "session %s.",
+                clean_session_id,
+            )
+
+            return self._technical_error()
+
+    def get_state(
         self,
         *,
-        message: str,
         session_id: str,
-    ) -> SupportWorkflowResponse:
-        normalized_message = message.strip()
-        normalized_session_id = (
-            session_id.strip()
-        )
+    ) -> dict[str, Any]:
+        """
+        Retourne le state actuel d'une
+        conversation.
 
-        if not normalized_message:
-            raise ValueError(
-                "Message cannot be empty."
-            )
+        À utiliser uniquement pour les tests ou
+        l'administration, jamais directement
+        dans la réponse visiteur.
+        """
 
-        if not normalized_session_id:
-            raise ValueError(
-                "Session ID cannot be empty."
-            )
-
-        result = await self.graph.ainvoke(
+        snapshot = self.graph.get_state(
             {
-                "messages": [
-                    HumanMessage(
-                        content=(
-                            normalized_message
-                        )
-                    )
-                ],
-                "session_id": (
-                    normalized_session_id
-                ),
-            },
-            config=self._create_config(
-                normalized_session_id
-            ),
+                "configurable": {
+                    "thread_id": session_id,
+                }
+            }
         )
 
-        return self._extract_response(
-            result
+        return dict(
+            snapshot.values or {}
         )
 
     @staticmethod
-    def _create_config(
-        session_id: str,
-    ) -> dict:
+    def _technical_error(
+    ) -> dict[str, Any]:
         return {
-            "configurable": {
-                "thread_id": session_id,
-            }
+            "status": "error",
+            "language": "fr",
+            "answer": (
+                "Une erreur technique est "
+                "survenue. Veuillez réessayer."
+            ),
+            "requires_human": False,
         }
 
-    @staticmethod
-    def _extract_response(
-        result: dict,
-    ) -> SupportWorkflowResponse:
-        response_data = result.get(
-            "final_response"
-        )
 
-        if response_data is None:
-            raise RuntimeError(
-                "The orchestration graph did "
-                "not produce a final response."
-            )
-
-        return (
-            SupportWorkflowResponse
-            .model_validate(
-                response_data
-            )
-        )
+def create_orchestration_service(
+) -> YouCodeOrchestrationService:
+    return YouCodeOrchestrationService()

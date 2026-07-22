@@ -89,6 +89,19 @@ class YouCodeState(
     # doit intervenir.
     requires_human: bool
 
+
+    # -------------------------------
+    # newsletter workflow
+    # -------------------------------
+
+    newsletter_phase: Literal[
+        "collecting",
+        "awaiting_consent",
+        "processing",
+        "completed",
+        "cancelled",
+    ]
+
     # -------------------------------
     # Support workflow
     # -------------------------------
