@@ -17,8 +17,10 @@ class SubscriptionStatus(str, Enum):
 
 class EmailDeliveryStatus(str, Enum):
     PENDING = "pending"
+    SENDING = "sending"
     SENT = "sent"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class EmailType(str, Enum):
@@ -28,4 +30,10 @@ class EmailType(str, Enum):
     NEWSLETTER = "newsletter"
     UNSUBSCRIBE_CONFIRMATION = (
         "unsubscribe_confirmation"
+    )
+    SUPPORT_ACKNOWLEDGEMENT = (
+        "support_acknowledgement"
+    )
+    TEST_RESCHEDULE_CONFIRMATION = (
+        "test_reschedule_confirmation"
     )

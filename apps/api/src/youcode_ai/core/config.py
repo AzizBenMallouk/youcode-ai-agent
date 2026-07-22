@@ -140,11 +140,37 @@ class Settings(BaseSettings):
         le=1440,
     )
 
+    # Email
+    email_provider: str = "console"
+    email_from_address: str = (
+        "no-reply@youcode.ma"
+    )
+    email_from_name: str = "YouCode"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    smtp_timeout: int = 10
+    email_max_attempts: int = 3
+
     # Fast API
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
     ]
+
+    # Auth
+    auth_secret_key: str = Field(min_length=32, default='replace-with-a-secure-random-key-at-least-32-chars')
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 7
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: str = 'lax'
+    auth_max_login_attempts: int = 5
+    auth_lockout_minutes: int = 15
+    admin_initial_email: str = ''
+    admin_initial_password: str = ''
+
 
     @model_validator(mode="after")
     def validate_provider_configuration(

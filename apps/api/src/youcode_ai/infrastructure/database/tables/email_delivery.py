@@ -4,6 +4,7 @@ from sqlalchemy import (
     DateTime,
     Enum as SqlEnum,
     ForeignKey,
+    Integer,
     String,
     Text,
 )
@@ -113,6 +114,33 @@ class EmailDeliveryTable(Base):
     )
 
     sent_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    template_name: Mapped[
+        str | None
+    ] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    payload_json: Mapped[
+        str | None
+    ] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    attempts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    scheduled_at: Mapped[
         datetime | None
     ] = mapped_column(
         DateTime(timezone=True),

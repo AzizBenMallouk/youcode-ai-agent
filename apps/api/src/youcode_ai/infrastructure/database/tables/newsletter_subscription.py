@@ -57,6 +57,12 @@ class NewsletterSubscriptionTable(Base):
         default=Language.FR,
     )
 
+    campus: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        index=True,
+    )
+
     status: Mapped[
         SubscriptionStatus
     ] = mapped_column(

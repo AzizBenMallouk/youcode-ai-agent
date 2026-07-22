@@ -15,10 +15,17 @@ from youcode_ai.core.config import settings
 from youcode_ai.infrastructure.database.tables import (
     ConsentGrantTable,
     NewsletterSubscriptionTable,
+    NewsletterCampaignTable,
+    EmailDeliveryTable,
 )
 from youcode_ai.infrastructure.database.repositories.newsletter import (
     NewsletterRepository,
 )
+from youcode_ai.infrastructure.database.repositories.newsletter_campaign import (
+    NewsletterCampaignRepository,
+)
+from youcode_ai.domain.enums.campaign import CampaignStatus
+import json
 
 
 @dataclass(frozen=True)
@@ -49,6 +56,7 @@ class NewsletterService:
         language: str,
         topics: list[str],
         consent_confirmed: bool,
+        campus: str | None = None,
     ) -> NewsletterOperationResult:
         """
         Crée ou réactive une inscription.
@@ -96,6 +104,7 @@ class NewsletterService:
                     ),
                     email=normalized_email,
                     language=language,
+                    campus=campus,
                     status="active",
                     consent_id=consent.id,
                     subscribed_at=now,
@@ -115,6 +124,8 @@ class NewsletterService:
                 language=language,
                 consent_id=consent.id,
             )
+            if campus is not None:
+                subscription.campus = campus
 
         self.repository.replace_preferences(
             subscription_id=subscription.id,
@@ -231,3 +242,136 @@ class NewsletterService:
         identifier = uuid4().hex.upper()
 
         return f"NL-{identifier[:12]}"
+
+    def list_subscriptions_filtered(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None = None,
+        campus: str | None = None,
+        language: str | None = None,
+        topic: str | None = None,
+    ) -> tuple[list[NewsletterSubscriptionTable], int]:
+        return self.repository.list_filtered(
+            page=page,
+            page_size=page_size,
+            status=status,
+            campus=campus,
+            language=language,
+            topic=topic,
+        )
+
+    def get_subscription_by_id(self, id: str) -> NewsletterSubscriptionTable | None:
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+        statement = select(NewsletterSubscriptionTable).options(
+            selectinload(NewsletterSubscriptionTable.preferences)
+        ).where(NewsletterSubscriptionTable.id == id)
+        return self.session.scalar(statement)
+
+    def update_subscription_admin(
+        self,
+        *,
+        id: str,
+        status: str | None = None,
+        campus: str | None = None,
+        language: str | None = None,
+    ) -> NewsletterSubscriptionTable:
+        sub = self.get_subscription_by_id(id)
+        if not sub:
+            raise ValueError("Subscription not found")
+        if status is not None:
+            sub.status = status
+        if campus is not None:
+            sub.campus = campus
+        if language is not None:
+            sub.language = language
+        self.session.flush()
+        return sub
+
+    def create_campaign(self, data: dict) -> NewsletterCampaignTable:
+        campaign_repo = NewsletterCampaignRepository(session=self.session)
+        now = datetime.now(timezone.utc)
+        target_topics = json.dumps(data.get("target_topics")) if data.get("target_topics") else None
+        target_campuses = json.dumps(data.get("target_campuses")) if data.get("target_campuses") else None
+        target_languages = json.dumps(data.get("target_languages")) if data.get("target_languages") else None
+
+        campaign = NewsletterCampaignTable(
+            id=str(uuid4()),
+            reference=f"CMP-{uuid4().hex[:12].upper()}",
+            title=data["title"],
+            subject=data["subject"],
+            template_name=data.get("template_name", "newsletter_content"),
+            content_json=data.get("content"),
+            target_topics=target_topics,
+            target_campuses=target_campuses,
+            target_languages=target_languages,
+            status=CampaignStatus.DRAFT,
+            created_at=now,
+            updated_at=now,
+        )
+        campaign_repo.add(campaign)
+        self.session.flush()
+        return campaign
+
+    def list_campaigns(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None = None,
+    ) -> tuple[list[NewsletterCampaignTable], int]:
+        campaign_repo = NewsletterCampaignRepository(session=self.session)
+        return campaign_repo.list_filtered(page=page, page_size=page_size, status=status)
+
+    def get_campaign(self, id: str) -> NewsletterCampaignTable | None:
+        campaign_repo = NewsletterCampaignRepository(session=self.session)
+        from sqlalchemy import select
+        statement = select(NewsletterCampaignTable).where(NewsletterCampaignTable.id == id)
+        return self.session.scalar(statement)
+
+    def send_campaign(self, id: str) -> dict:
+        campaign = self.get_campaign(id)
+        if not campaign:
+            raise ValueError("Campaign not found")
+        if campaign.status != CampaignStatus.DRAFT:
+            raise ValueError("Only DRAFT campaigns can be sent")
+            
+        topics = json.loads(campaign.target_topics) if campaign.target_topics else None
+        campuses = json.loads(campaign.target_campuses) if campaign.target_campuses else None
+        languages = json.loads(campaign.target_languages) if campaign.target_languages else None
+        
+        subscribers = self.repository.get_active_by_criteria(
+            topics=topics, campuses=campuses, languages=languages
+        )
+        
+        now = datetime.now(timezone.utc)
+        
+        queued_count = 0
+        for sub in subscribers:
+            delivery = EmailDeliveryTable(
+                id=str(uuid4()),
+                recipient_email=sub.email,
+                subscription_id=sub.id,
+                email_type="newsletter",
+                subject=campaign.subject,
+                template_name=campaign.template_name,
+                payload_json="{}",
+                status="pending",
+                created_at=now,
+            )
+            self.session.add(delivery)
+            queued_count += 1
+            
+        campaign.status = CampaignStatus.SENDING
+        campaign.total_recipients = queued_count
+        campaign.updated_at = now
+        
+        self.session.flush()
+        
+        return {
+            "campaign_reference": campaign.reference,
+            "queued_count": queued_count,
+            "message": "Campaign queued successfully"
+        }

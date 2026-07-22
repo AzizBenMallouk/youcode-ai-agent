@@ -1,5 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import (
+    ColumnElement
+)
 
 from youcode_ai.domain.enums import (
     RequestStatus,
@@ -187,4 +190,59 @@ class VisitorRequestRepository(
 
         return self.session.scalar(
             statement
+        )
+
+    def find_by_reference(
+        self,
+        reference: str,
+    ) -> VisitorRequestTable | None:
+        return self.find_one(
+            VisitorRequestTable.reference
+            == reference
+        )
+
+    def list_filtered(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        request_type: str | None = None,
+        status: str | None = None,
+        campus: str | None = None,
+    ) -> tuple[
+        list[VisitorRequestTable],
+        int,
+    ]:
+        conditions: list[
+            ColumnElement[bool]
+        ] = []
+
+        if request_type:
+            conditions.append(
+                VisitorRequestTable
+                .request_type
+                == request_type
+            )
+
+        if status:
+            conditions.append(
+                VisitorRequestTable.status
+                == status
+            )
+
+        if campus:
+            conditions.append(
+                VisitorRequestTable.campus
+                == campus
+            )
+
+        return self.list_paginated(
+            page=page,
+            page_size=page_size,
+            conditions=conditions,
+            order_by=(
+                VisitorRequestTable
+                .created_at
+                .desc()
+            ),
         )

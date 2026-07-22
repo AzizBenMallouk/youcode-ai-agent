@@ -174,3 +174,72 @@ class NewsletterRepository(
             )
 
         self.session.flush()
+
+    def list_filtered(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        status: str | None = None,
+        campus: str | None = None,
+        language: str | None = None,
+        topic: str | None = None,
+    ) -> tuple[list[NewsletterSubscriptionTable], int]:
+        from sqlalchemy import func
+        statement = select(NewsletterSubscriptionTable).options(
+            selectinload(NewsletterSubscriptionTable.preferences)
+        )
+        count_statement = select(func.count(NewsletterSubscriptionTable.id.distinct()))
+
+        if status:
+            statement = statement.where(NewsletterSubscriptionTable.status == status)
+            count_statement = count_statement.where(NewsletterSubscriptionTable.status == status)
+        
+        if campus:
+            statement = statement.where(NewsletterSubscriptionTable.campus == campus)
+            count_statement = count_statement.where(NewsletterSubscriptionTable.campus == campus)
+            
+        if language:
+            statement = statement.where(NewsletterSubscriptionTable.language == language)
+            count_statement = count_statement.where(NewsletterSubscriptionTable.language == language)
+            
+        if topic:
+            statement = statement.join(NewsletterSubscriptionTable.preferences).where(
+                NewsletterPreferenceTable.topic == topic
+            )
+            count_statement = count_statement.join(NewsletterSubscriptionTable.preferences).where(
+                NewsletterPreferenceTable.topic == topic
+            )
+            
+        statement = statement.order_by(NewsletterSubscriptionTable.created_at.desc())
+        offset = (page - 1) * page_size
+        statement = statement.offset(offset).limit(page_size)
+        
+        items = list(self.session.scalars(statement).unique().all())
+        total = self.session.scalar(count_statement) or 0
+        
+        return items, total
+
+    def get_active_by_criteria(
+        self,
+        *,
+        topics: list[str] | None = None,
+        campuses: list[str] | None = None,
+        languages: list[str] | None = None,
+    ) -> list[NewsletterSubscriptionTable]:
+        statement = select(NewsletterSubscriptionTable).where(
+            NewsletterSubscriptionTable.status == SubscriptionStatus.ACTIVE
+        )
+        
+        if campuses:
+            statement = statement.where(NewsletterSubscriptionTable.campus.in_(campuses))
+            
+        if languages:
+            statement = statement.where(NewsletterSubscriptionTable.language.in_(languages))
+            
+        if topics:
+            statement = statement.join(NewsletterSubscriptionTable.preferences).where(
+                NewsletterPreferenceTable.topic.in_(topics)
+            )
+            
+        return list(self.session.scalars(statement).unique().all())

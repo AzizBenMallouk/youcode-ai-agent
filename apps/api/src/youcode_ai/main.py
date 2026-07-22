@@ -96,6 +96,33 @@ app.include_router(
     api_router
 )
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from youcode_ai.domain.exceptions import (
+    DomainError,
+    AuthenticationError,
+    AuthorizationError,
+    AccountLockedError,
+    AccountDisabledError,
+    DuplicateEmailError,
+)
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError):
+    status_code = 400
+    
+    if isinstance(exc, AuthenticationError):
+        status_code = 401
+    elif isinstance(exc, (AuthorizationError, AccountDisabledError, AccountLockedError)):
+        status_code = 403
+    elif isinstance(exc, DuplicateEmailError):
+        status_code = 409
+        
+    return JSONResponse(
+        status_code=status_code,
+        content={"detail": str(exc)},
+    )
+
 
 @app.get(
     "/health",

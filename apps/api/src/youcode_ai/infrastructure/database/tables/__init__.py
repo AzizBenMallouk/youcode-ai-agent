@@ -13,6 +13,9 @@ from youcode_ai.infrastructure.database.tables.knowledge_gap_answer import (
 from youcode_ai.infrastructure.database.tables.knowledge_gap_question import (
     KnowledgeGapQuestionTable,
 )
+from youcode_ai.infrastructure.database.tables.newsletter_campaign import (
+    NewsletterCampaignTable,
+)
 from youcode_ai.infrastructure.database.tables.newsletter_preference import (
     NewsletterPreferenceTable,
 )
@@ -22,6 +25,12 @@ from youcode_ai.infrastructure.database.tables.newsletter_subscription import (
 from youcode_ai.infrastructure.database.tables.visitor_request import (
     VisitorRequestTable,
 )
+from youcode_ai.infrastructure.database.tables.user import (
+    UserTable,
+)
+from youcode_ai.infrastructure.database.tables.refresh_token import (
+    RefreshTokenTable,
+)
 
 
 __all__ = [
@@ -30,7 +39,10 @@ __all__ = [
     "KnowledgeGapAnswerTable",
     "KnowledgeGapQuestionTable",
     "KnowledgeGapTable",
+    "NewsletterCampaignTable",
     "NewsletterPreferenceTable",
     "NewsletterSubscriptionTable",
     "VisitorRequestTable",
+    "UserTable",
+    "RefreshTokenTable",
 ]

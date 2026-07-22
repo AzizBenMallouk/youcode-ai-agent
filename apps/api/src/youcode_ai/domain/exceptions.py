@@ -57,3 +57,47 @@ class IncompleteRequestError(
     DomainError
 ):
     pass
+
+
+# Email
+class EmailDeliveryError(
+    DomainError
+):
+    pass
+
+
+class EmailProviderUnavailableError(
+    DomainError
+):
+    pass
+
+
+# Auth
+class AuthenticationError(
+    DomainError
+):
+    pass
+
+
+class AuthorizationError(
+    DomainError
+):
+    pass
+
+
+class AccountLockedError(
+    DomainError
+):
+    pass
+
+
+class AccountDisabledError(
+    DomainError
+):
+    pass
+
+
+class DuplicateEmailError(
+    DomainError
+):
+    pass

@@ -184,3 +184,17 @@ class VisitorRequestTable(Base):
     ] = relationship(
         back_populates="visitor_request",
     )
+
+    review_note: Mapped[
+        str | None
+    ] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    reviewed_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
