@@ -10,7 +10,10 @@ from langgraph.graph import (
 )
 
 from youcode_ai.agents.support.nodes import (
-    SupportNodes,
+    create_support_nodes,
+)
+from youcode_ai.agents.guide.nodes import (
+    create_guide_nodes,
 )
 from youcode_ai.orchestration.routing import (
     route_after_consent,
@@ -21,9 +24,9 @@ from youcode_ai.orchestration.state import (
     YouCodeState,
 )
 
-
 def create_youcode_graph():
-    support_nodes = SupportNodes()
+    support_nodes = create_support_nodes()
+    guide_nodes = create_guide_nodes()
 
     workflow = StateGraph(
         YouCodeState
@@ -65,6 +68,11 @@ def create_youcode_graph():
     workflow.add_node(
         "support_alternative",
         support_nodes.search_alternative_session,
+    )
+
+    workflow.add_node(
+        "guide",
+        guide_nodes.answer_question,
     )
 
     # Chaque nouveau message entre ici.
@@ -149,6 +157,16 @@ def create_youcode_graph():
 
     workflow.add_edge(
         "support_process",
+        END,
+    )
+
+    workflow.add_edge(
+        START,
+        "guide",
+    )
+
+    workflow.add_edge(
+        "guide",
         END,
     )
 

@@ -902,3 +902,8 @@ class SupportNodes:
                 )
             ),
         }
+
+
+
+def create_support_nodes():
+    return SupportNodes()

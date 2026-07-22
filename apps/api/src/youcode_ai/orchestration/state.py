@@ -1,4 +1,3 @@
-from datetime import date
 from typing import (
     Annotated,
     Literal,
@@ -12,11 +11,6 @@ from langgraph.graph.message import (
     add_messages,
 )
 
-from youcode_ai.domain.enums import (
-    Language,
-    RequestType,
-)
-
 
 class SupportDraft(
     TypedDict,
@@ -26,18 +20,25 @@ class SupportDraft(
     Informations temporairement collectées
     pour une demande de support.
 
-    Ces informations ne sont pas encore
-    enregistrées dans la base SQL.
+    Toutes les valeurs conservées dans le state
+    doivent être sérialisables.
     """
 
-    request_type: RequestType
-    language: Language
+    # Valeurs des enums sous forme de str.
+    request_type: str
+    language: Literal[
+        "fr",
+        "en",
+        "ar",
+        "darija",
+    ]
 
     email: str
     campus: str
 
-    scheduled_test_date: date
-    requested_test_date: date
+    # Dates au format ISO : YYYY-MM-DD.
+    scheduled_test_date: str
+    requested_test_date: str
 
     description: str
 
@@ -55,7 +56,7 @@ class YouCodeState(
     différents messages d'une conversation.
     """
 
-    # Historique de la conversation.
+    # Historique complet de la conversation.
     messages: Annotated[
         list[BaseMessage],
         add_messages,
@@ -81,7 +82,17 @@ class YouCodeState(
         "newsletter",
     ]
 
-    # Étape actuelle de la demande Support.
+    # Réponse finale retournée au frontend.
+    final_response: dict | None
+
+    # Indique si un responsable humain
+    # doit intervenir.
+    requires_human: bool
+
+    # -------------------------------
+    # Support workflow
+    # -------------------------------
+
     support_phase: Literal[
         "collecting",
         "awaiting_consent",
@@ -94,23 +105,17 @@ class YouCodeState(
     ]
 
     proposed_session_id: str | None
+
+    # Date et heure au format ISO.
     proposed_test_date: str | None
 
     rejected_session_ids: list[str]
 
-    # Brouillon temporaire de la demande.
+    # Brouillon non enregistré en base.
     support_draft: SupportDraft
 
-    # Devient True uniquement après une
-    # confirmation explicite du visiteur.
+    # True après confirmation explicite.
     consent_confirmed: bool
 
-    # Référence créée après l'enregistrement.
+    # Référence après enregistrement SQL.
     request_reference: str | None
-
-    # Réponse finale retournée au frontend.
-    final_response: dict | None
-
-    # Indique si un responsable humain
-    # doit intervenir.
-    requires_human: bool

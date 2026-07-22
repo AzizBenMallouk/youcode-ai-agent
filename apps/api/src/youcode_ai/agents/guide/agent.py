@@ -13,7 +13,7 @@ from youcode_ai.agents.guide.schemas import (
     GuideResponse,
 )
 from youcode_ai.agents.guide.tools import (
-    search_youcode_knowledge,
+    create_guide_tools,
 )
 from youcode_ai.core.llm import (
     create_chat_model,
@@ -35,9 +35,7 @@ def create_guide_agent(
 
     return create_agent(
         model=create_chat_model(),
-        tools=[
-            search_youcode_knowledge,
-        ],
+        tools=create_guide_tools(),
         system_prompt=(
             GUIDE_AGENT_SYSTEM_PROMPT
         ),
