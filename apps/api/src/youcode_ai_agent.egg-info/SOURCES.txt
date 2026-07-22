@@ -8,6 +8,7 @@ apps/api/src/youcode_ai/agents/guide/schemas.py
 apps/api/src/youcode_ai/agents/guide/service.py
 apps/api/src/youcode_ai/agents/guide/tools.py
 apps/api/src/youcode_ai/agents/newsletter/extractor.py
+apps/api/src/youcode_ai/agents/newsletter/nodes.py
 apps/api/src/youcode_ai/agents/newsletter/prompt.py
 apps/api/src/youcode_ai/agents/newsletter/schemas.py
 apps/api/src/youcode_ai/agents/newsletter/validator.py
@@ -20,13 +21,16 @@ apps/api/src/youcode_ai/agents/support/nodes.py
 apps/api/src/youcode_ai/agents/support/prompt.py
 apps/api/src/youcode_ai/agents/support/schemas.py
 apps/api/src/youcode_ai/api/router.py
-apps/api/src/youcode_ai/api/routes/health.py
+apps/api/src/youcode_ai/api/routes/chat.py
+apps/api/src/youcode_ai/api/schemas/chat.py
 apps/api/src/youcode_ai/application/schemas/__init__.py
 apps/api/src/youcode_ai/application/schemas/consent.py
 apps/api/src/youcode_ai/application/schemas/support.py
 apps/api/src/youcode_ai/application/services/__init__.py
 apps/api/src/youcode_ai/application/services/consent.py
 apps/api/src/youcode_ai/application/services/factories.py
+apps/api/src/youcode_ai/application/services/newsletter.py
+apps/api/src/youcode_ai/application/services/registration.py
 apps/api/src/youcode_ai/application/services/rescheduling.py
 apps/api/src/youcode_ai/application/services/support_request.py
 apps/api/src/youcode_ai/application/services/test_session.py
@@ -59,6 +63,8 @@ apps/api/src/youcode_ai/infrastructure/database/tables/knowledge_gap_question.py
 apps/api/src/youcode_ai/infrastructure/database/tables/newsletter_preference.py
 apps/api/src/youcode_ai/infrastructure/database/tables/newsletter_subscription.py
 apps/api/src/youcode_ai/infrastructure/database/tables/visitor_request.py
+apps/api/src/youcode_ai/infrastructure/integrations/registration_api/client.py
+apps/api/src/youcode_ai/infrastructure/integrations/registration_api/schemas.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/__init__.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/client.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/schemas.py

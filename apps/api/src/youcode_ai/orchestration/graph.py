@@ -1,7 +1,7 @@
 from functools import lru_cache
 
-from langgraph.checkpoint.memory import (
-    InMemorySaver,
+from youcode_ai.infrastructure.checkpoint.sqlite import (
+    create_sqlite_checkpointer,
 )
 from langgraph.graph import (
     END,
@@ -317,5 +317,5 @@ def create_youcode_graph():
     )
 
     return workflow.compile(
-        checkpointer=InMemorySaver(),
+        checkpointer=create_sqlite_checkpointer(),
     )

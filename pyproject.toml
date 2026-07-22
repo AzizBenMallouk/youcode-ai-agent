@@ -15,6 +15,7 @@ dependencies = [
     "langchain-qdrant>=1.1.0",
     "langchain-text-splitters>=1.1.2",
     "langgraph>=1.2.9",
+    "langgraph-checkpoint-sqlite>=3.1.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.2",
     "python-multipart>=0.0.32",

@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     ollama_chat_model: str
     ollama_embedding_model: str
 
+    # LangGraph
+    langgraph_checkpoint_path: str
+
     # Database
     database_url: str
 
