@@ -63,7 +63,15 @@ class TestSessionService:
         *,
         campus: str,
         requested_date: date,
+        excluded_session_ids: (
+            set[str] | None
+        ) = None,
     ) -> TestSessionData:
+        excluded_ids = (
+            excluded_session_ids
+            or set()
+        )
+
         sessions = (
             self.find_available_sessions(
                 campus=campus,
@@ -71,17 +79,19 @@ class TestSessionService:
             )
         )
 
-        if not sessions:
-            raise (
-                NoAvailableTestSessionError(
-                    "No compatible test "
-                    "session is available."
-                )
+        compatible_sessions = [
+            session
+            for session in sessions
+            if session.id not in excluded_ids
+        ]
+
+        if not compatible_sessions:
+            raise NoAvailableTestSessionError(
+                "No other compatible test "
+                "session is available."
             )
 
-        # Le choix est déterministe.
-        # Le LLM ne choisit pas la date.
-        return sessions[0]
+        return compatible_sessions[0]
 
     def validate_session(
         self,

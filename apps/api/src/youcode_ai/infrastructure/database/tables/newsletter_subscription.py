@@ -125,3 +125,5 @@ class NewsletterSubscriptionTable(Base):
     ] = relationship(
         back_populates="subscription",
     )
+
+    

@@ -14,6 +14,11 @@ class RequestType(str, Enum):
 class RequestStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
+
+    AWAITING_CANDIDATE_CONFIRMATION = (
+        "awaiting_candidate_confirmation"
+    )
+
     PENDING_APPROVAL = "pending_approval"
     APPROVED = "approved"
     REJECTED = "rejected"

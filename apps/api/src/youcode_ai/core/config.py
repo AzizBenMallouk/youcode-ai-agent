@@ -64,8 +64,13 @@ class Settings(BaseSettings):
 
     # Qdrant
     qdrant_url: str
+    qdrant_api_key: str | None = None
     qdrant_documents_collection: str
     qdrant_knowledge_gaps_collection: str
+    rag_ingestion_batch_size: int = Field(
+        ge=1,
+        le=500,
+    )
 
     # RAG
     documents_path: Path
@@ -79,6 +84,26 @@ class Settings(BaseSettings):
     rag_score_threshold: float = Field(
         ge=0,
         le=1,
+    )
+
+    rag_parent_chunk_size: int = Field(
+        ge=500,
+        le=5000,
+    )
+
+    rag_parent_chunk_overlap: int = Field(
+        ge=0,
+        le=1000,
+    )
+
+    rag_child_chunk_size: int = Field(
+        ge=100,
+        le=2000,
+    )
+
+    rag_child_chunk_overlap: int = Field(
+        ge=0,
+        le=500,
     )
 
     # External services

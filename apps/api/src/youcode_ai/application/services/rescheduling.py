@@ -154,7 +154,7 @@ class ReschedulingService:
         )
 
         visitor_request.status = (
-            RequestStatus.PENDING_APPROVAL
+            RequestStatus.AWAITING_CANDIDATE_CONFIRMATION
         )
 
         visitor_request.external_session_id = (
@@ -198,3 +198,163 @@ class ReschedulingService:
             ),
             requires_human=True,
         )
+
+    def confirm_proposal(
+        self,
+        *,
+        reference: str,
+        session_id: str,
+    ) -> ReschedulingResult:
+        request = (
+            self.repository
+            .find_by_reference_for_session(
+                reference=reference,
+                session_id=session_id,
+            )
+        )
+
+        if request is None:
+            raise VisitorRequestNotFoundError(
+                "Visitor request not found."
+            )
+
+        if (
+            request.status
+            != RequestStatus
+            .AWAITING_CANDIDATE_CONFIRMATION
+        ):
+            raise InvalidRequestStatusError(
+                "The request is not awaiting "
+                "candidate confirmation."
+            )
+
+        if (
+            not request.external_session_id
+            or not request.proposed_test_date
+        ):
+            raise IncompleteRequestError(
+                "The request has no proposal."
+            )
+
+        request.status = (
+            RequestStatus.PENDING_APPROVAL
+        )
+
+        request = self.repository.save(
+            request
+        )
+
+        return ReschedulingResult(
+            reference=request.reference,
+            status=request.status,
+            external_session_id=(
+                request.external_session_id
+            ),
+            proposed_test_date=(
+                request.proposed_test_date
+            ),
+            decision_reason=(
+                request.decision_reason
+                or "Candidate accepted."
+            ),
+            requires_human=True,
+        )
+
+
+    def propose_alternative(
+        self,
+        *,
+        reference: str,
+        session_id: str,
+        excluded_session_ids: set[str],
+    ) -> ReschedulingResult:
+        request = (
+            self.repository
+            .find_by_reference_for_session(
+                reference=reference,
+                session_id=session_id,
+            )
+        )
+
+        if request is None:
+            raise VisitorRequestNotFoundError(
+                "Visitor request not found."
+            )
+
+        if (
+            request.status
+            != RequestStatus
+            .AWAITING_CANDIDATE_CONFIRMATION
+        ):
+            raise InvalidRequestStatusError(
+                "The request is not awaiting "
+                "candidate confirmation."
+            )
+
+        if (
+            not request.campus
+            or not request.requested_test_date
+        ):
+            raise IncompleteRequestError(
+                "The request is incomplete."
+            )
+
+        alternative = (
+            self.test_session_service
+            .find_best_session(
+                campus=request.campus,
+                requested_date=(
+                    request.requested_test_date
+                ),
+                excluded_session_ids=(
+                    excluded_session_ids
+                ),
+            )
+        )
+
+        alternative = (
+            self.test_session_service
+            .validate_session(
+                session_id=alternative.id,
+                campus=request.campus,
+                requested_date=(
+                    request.requested_test_date
+                ),
+            )
+        )
+
+        request.external_session_id = (
+            alternative.id
+        )
+
+        request.proposed_test_date = (
+            alternative.start_at
+        )
+
+        request.decision_reason = (
+            "Session alternative proposée "
+            "après le refus de la proposition "
+            "précédente."
+        )
+
+        request = self.repository.save(
+            request
+        )
+
+        return ReschedulingResult(
+            reference=request.reference,
+            status=request.status,
+            external_session_id=(
+                request.external_session_id
+            ),
+            proposed_test_date=(
+                request.proposed_test_date
+            ),
+            decision_reason=(
+                request.decision_reason
+            ),
+            requires_human=False,
+        )
+
+
+    

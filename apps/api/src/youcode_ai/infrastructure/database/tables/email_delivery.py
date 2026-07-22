@@ -122,5 +122,5 @@ class EmailDeliveryTable(Base):
     subscription: Mapped[
         "NewsletterSubscriptionTable | None"
     ] = relationship(
-        back_populates="deliveries",
+        back_populates="email_deliveries",
     )
