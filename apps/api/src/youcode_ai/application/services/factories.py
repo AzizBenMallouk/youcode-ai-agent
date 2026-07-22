@@ -20,6 +20,13 @@ from youcode_ai.infrastructure.integrations.test_sessions import (
 from youcode_ai.application.services.rescheduling import (
     ReschedulingService,
 )
+from youcode_ai.infrastructure.integrations.registration_api.client import (
+    RegistrationApiClient,
+)
+from youcode_ai.application.services.registration import (
+    RegistrationService
+)
+
 
 def create_consent_service(
     *,
@@ -90,4 +97,25 @@ def create_rescheduling_service(
         test_session_service=(
             test_session_service
         ),
+    )
+
+
+
+
+def create_registration_service(
+) -> RegistrationService:
+    client = RegistrationApiClient(
+        base_url=(
+            settings.registration_api_url
+        ),
+        timeout=(
+            settings.external_api_timeout
+        ),
+        api_key=(
+            settings.registration_api_key
+        ),
+    )
+
+    return RegistrationService(
+        client=client
     )

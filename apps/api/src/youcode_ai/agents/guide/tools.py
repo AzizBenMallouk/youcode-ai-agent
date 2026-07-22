@@ -1,12 +1,20 @@
 import logging
-
-from typing import Any
+from typing import (
+    Any,
+    Literal,
+)
 
 from langchain_core.tools import (
     BaseTool,
     tool,
 )
 
+from youcode_ai.application.services.factories import (
+    create_registration_service,
+)
+from youcode_ai.application.services.registration import (
+    RegistrationService,
+)
 from youcode_ai.rag.retriever import (
     ParentChildRetriever,
     RetrievalResult,
@@ -16,6 +24,10 @@ from youcode_ai.rag.retriever import (
 
 logger = logging.getLogger(__name__)
 
+
+# -------------------------------------
+# Formatage des documents RAG
+# -------------------------------------
 
 def format_documents_for_agent(
     result: RetrievalResult,
@@ -34,9 +46,7 @@ def format_documents_for_agent(
                 "INFORMATION_NOT_AVAILABLE"
             ),
             "question": result.question,
-            "best_score": (
-                result.best_score
-            ),
+            "best_score": result.best_score,
             "documents": [],
         }
 
@@ -81,6 +91,10 @@ def format_documents_for_agent(
     }
 
 
+# -------------------------------------
+# Tool RAG
+# -------------------------------------
+
 def create_search_youcode_knowledge_tool(
     *,
     retriever: ParentChildRetriever,
@@ -93,12 +107,15 @@ def create_search_youcode_knowledge_tool(
     ) -> dict[str, Any]:
         """
         Search the official YouCode knowledge
-        base for factual information.
+        base for stable factual information.
 
         Use this tool for questions about YouCode,
-        its programs, admissions, campuses,
-        pedagogy, careers, events and practical
-        information.
+        its programs, campuses, pedagogy, careers,
+        events and practical information.
+
+        Do not use this tool as the primary source
+        for dynamic registration dates or the
+        current registration status.
 
         The tool returns official documents, not
         a final answer.
@@ -147,14 +164,161 @@ def create_search_youcode_knowledge_tool(
     return search_youcode_knowledge
 
 
+# -------------------------------------
+# Tool Registration API
+# -------------------------------------
+
+def create_registration_status_tool(
+    *,
+    registration_service: (
+        RegistrationService
+    ),
+) -> BaseTool:
+    @tool(
+        "get_registration_status"
+    )
+    def get_registration_status(
+        program: Literal[
+            "full_program",
+            "bootcamp",
+        ] = "full_program",
+        campus: Literal[
+            "Safi",
+            "Youssoufia",
+            "Nador",
+        ] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get dynamic official YouCode registration
+        information.
+
+        Use this tool for questions about:
+        - whether registrations are currently open;
+        - registration opening or closing dates;
+        - current registration links;
+        - available places;
+        - registration status by campus.
+
+        The tool returns structured official data,
+        not a final answer.
+        """
+
+        try:
+            result = (
+                registration_service
+                .get_status(
+                    program=program,
+                    campus=campus,
+                )
+            )
+
+        except ValueError:
+            logger.warning(
+                "Invalid registration query: "
+                "program=%s campus=%s.",
+                program,
+                campus,
+            )
+
+            return {
+                "status": (
+                    "INVALID_REGISTRATION_QUERY"
+                ),
+                "program": program,
+                "campus": campus,
+            }
+
+        except Exception:
+            logger.exception(
+                "Registration lookup failed."
+            )
+
+            return {
+                "status": (
+                    "REGISTRATION_SERVICE_"
+                    "UNAVAILABLE"
+                ),
+                "program": program,
+                "campus": campus,
+            }
+
+        if not result.service_available:
+            return {
+                "status": (
+                    "REGISTRATION_SERVICE_"
+                    "UNAVAILABLE"
+                ),
+                "program": result.program,
+                "campus": result.campus,
+            }
+
+        if not result.information_available:
+            return {
+                "status": (
+                    "REGISTRATION_INFORMATION_"
+                    "NOT_AVAILABLE"
+                ),
+                "program": result.program,
+                "campus": result.campus,
+            }
+
+        return {
+            "status": (
+                "REGISTRATION_DATA_FOUND"
+            ),
+            "program": result.program,
+            "campus": result.campus,
+            "registration_status": (
+                result.status
+            ),
+            "opening_date": (
+                result.opening_date.isoformat()
+                if result.opening_date
+                else None
+            ),
+            "closing_date": (
+                result.closing_date.isoformat()
+                if result.closing_date
+                else None
+            ),
+            "registration_url": (
+                result.registration_url
+            ),
+            "available_places": (
+                result.available_places
+            ),
+            "message": result.message,
+            "updated_at": (
+                result.updated_at.isoformat()
+                if result.updated_at
+                else None
+            ),
+        }
+
+    return get_registration_status
+
+
+# -------------------------------------
+# Factory des tools du Guide
+# -------------------------------------
+
 def create_guide_tools(
 ) -> list[BaseTool]:
     retriever = (
         create_parent_child_retriever()
     )
 
+    registration_service = (
+        create_registration_service()
+    )
+
     return [
         create_search_youcode_knowledge_tool(
             retriever=retriever
-        )
+        ),
+        create_registration_status_tool(
+            registration_service=(
+                registration_service
+            )
+        ),
     ]

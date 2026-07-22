@@ -108,7 +108,6 @@ class Settings(BaseSettings):
 
     # External services
     registration_api_url: str
-    registration_api_timeout: float = 10.0
     registration_api_key: str | None = None
 
     test_session_api_url: str

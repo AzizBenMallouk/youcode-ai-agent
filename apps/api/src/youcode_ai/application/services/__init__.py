@@ -5,7 +5,8 @@ from youcode_ai.application.services.factories import (
     create_consent_service,
     create_support_request_service,
     create_test_session_service,
-    create_rescheduling_service
+    create_rescheduling_service,
+    create_registration_service
 )
 from youcode_ai.application.services.support_request import (
     SupportRequestService,
@@ -26,4 +27,5 @@ __all__ = [
     "create_test_session_service",
     "ReschedulingService",
     "create_rescheduling_service",
+    "create_registration_service"
 ]
