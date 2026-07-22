@@ -5,16 +5,12 @@ from fastapi import FastAPI
 
 from youcode_ai.api.router import api_router
 from youcode_ai.core.config import settings
-from youcode_ai.infrastructure.database import (
-    initialize_database,
-)
 
 
 @asynccontextmanager
 async def lifespan(
     application: FastAPI,
 ) -> AsyncIterator[None]:
-    initialize_database()
 
     yield
 
