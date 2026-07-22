@@ -113,7 +113,7 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_extract",
-        support_nodes.extract_request,
+        support_nodes.extract_information,
     )
 
     workflow.add_node(
@@ -123,7 +123,7 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_consent",
-        support_nodes.handle_consent,
+        support_nodes.classify_consent,
     )
 
     workflow.add_node(
@@ -133,17 +133,17 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_session_decision",
-        support_nodes.handle_session_decision,
+        support_nodes.classify_session_proposal,
     )
 
     workflow.add_node(
         "support_confirm_session",
-        support_nodes.confirm_session,
+        support_nodes.confirm_session_proposal,
     )
 
     workflow.add_node(
         "support_alternative",
-        support_nodes.propose_alternative,
+        support_nodes.search_alternative_session,
     )
 
     # ---------------------------------

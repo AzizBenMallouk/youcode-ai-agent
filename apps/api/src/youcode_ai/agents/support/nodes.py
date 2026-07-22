@@ -905,5 +905,5 @@ class SupportNodes:
 
 
 
-def create_support_nodes():
+def create_support_nodes()-> SupportNodes:
     return SupportNodes()
