@@ -2,15 +2,16 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     String,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     ConsentPurpose,
 )
@@ -46,9 +47,7 @@ class ConsentGrantTable(Base):
         index=True,
     )
 
-    purpose: Mapped[
-        ConsentPurpose
-    ] = mapped_column(
+    purpose: Mapped[ConsentPurpose] = mapped_column(
         SqlEnum(
             ConsentPurpose,
             values_callable=enum_values,
@@ -77,45 +76,35 @@ class ConsentGrantTable(Base):
         nullable=False,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    expires_at: Mapped[
-        datetime
-    ] = mapped_column(
+    expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
     )
 
-    used_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    revoked_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    visitor_request: Mapped[
-        "VisitorRequestTable | None"
-    ] = relationship(
+    visitor_request: Mapped["VisitorRequestTable | None"] = relationship(
         back_populates="consent",
         uselist=False,
     )
 
-    newsletter_subscription: Mapped[
-        "NewsletterSubscriptionTable | None"
-    ] = relationship(
-        back_populates="consent",
-        uselist=False,
+    newsletter_subscription: Mapped["NewsletterSubscriptionTable | None"] = (
+        relationship(
+            back_populates="consent",
+            uselist=False,
+        )
     )

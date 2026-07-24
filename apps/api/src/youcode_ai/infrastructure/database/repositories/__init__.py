@@ -16,16 +16,15 @@ from youcode_ai.infrastructure.database.repositories.newsletter import (
 from youcode_ai.infrastructure.database.repositories.newsletter_campaign import (
     NewsletterCampaignRepository,
 )
-from youcode_ai.infrastructure.database.repositories.visitor_request import (
-    VisitorRequestRepository,
+from youcode_ai.infrastructure.database.repositories.refresh_token import (
+    RefreshTokenRepository,
 )
 from youcode_ai.infrastructure.database.repositories.user import (
     UserRepository,
 )
-from youcode_ai.infrastructure.database.repositories.refresh_token import (
-    RefreshTokenRepository,
+from youcode_ai.infrastructure.database.repositories.visitor_request import (
+    VisitorRequestRepository,
 )
-
 
 __all__ = [
     "BaseRepository",

@@ -4,7 +4,6 @@ from youcode_ai.orchestration.state import (
     YouCodeState,
 )
 
-
 # -------------------------------------
 # Types de routage globaux
 # -------------------------------------
@@ -96,6 +95,17 @@ NewsletterConsentRoute = Literal[
 # Entrée globale
 # -------------------------------------
 
+
+def route_after_guardrail(
+    state: YouCodeState,
+) -> str:
+    active_agent = state.get("active_agent")
+
+    if active_agent == "guardrail_refusal":
+        return "guardrail_refusal"
+    return route_graph_entry(state)
+
+
 def route_graph_entry(
     state: YouCodeState,
 ) -> EntryRoute:
@@ -107,26 +117,16 @@ def route_graph_entry(
     repasser par le Supervisor.
     """
 
-    active_agent = state.get(
-        "active_agent"
-    )
+    active_agent = state.get("active_agent")
 
     if active_agent == "support":
-        support_route = (
-            _get_support_phase_route(
-                state
-            )
-        )
+        support_route = _get_support_phase_route(state)
 
         if support_route != "end":
             return support_route
 
     if active_agent == "newsletter":
-        newsletter_route = (
-            _get_newsletter_phase_route(
-                state
-            )
-        )
+        newsletter_route = _get_newsletter_phase_route(state)
 
         if newsletter_route != "end":
             return newsletter_route
@@ -138,6 +138,7 @@ def route_graph_entry(
 # -------------------------------------
 # Supervisor
 # -------------------------------------
+
 
 def route_after_supervisor(
     state: YouCodeState,
@@ -168,6 +169,7 @@ def route_after_supervisor(
 # Support
 # -------------------------------------
 
+
 def route_after_extraction(
     state: YouCodeState,
 ) -> ExtractionRoute:
@@ -176,25 +178,17 @@ def route_after_extraction(
     des informations Support.
     """
 
-    support_phase = state.get(
-        "support_phase"
-    )
+    support_phase = state.get("support_phase")
 
     if support_phase == "collecting":
         return "missing"
 
-    if (
-        support_phase
-        == "awaiting_consent"
-    ):
+    if support_phase == "awaiting_consent":
         return "consent"
 
-    if (
-        support_phase == "processing"
-        and state.get(
-            "consent_confirmed",
-            False,
-        )
+    if support_phase == "processing" and state.get(
+        "consent_confirmed",
+        False,
     ):
         return "process"
 
@@ -209,9 +203,7 @@ def route_support_entry(
     la phase actuelle.
     """
 
-    return _get_support_phase_route(
-        state
-    )
+    return _get_support_phase_route(state)
 
 
 def _get_support_phase_route(
@@ -222,38 +214,24 @@ def _get_support_phase_route(
     workflow Support.
     """
 
-    support_phase = state.get(
-        "support_phase"
-    )
+    support_phase = state.get("support_phase")
 
     if support_phase == "collecting":
         return "support_extract"
 
-    if (
-        support_phase
-        == "awaiting_consent"
-    ):
+    if support_phase == "awaiting_consent":
         return "support_consent"
 
     if support_phase == "processing":
         return "support_process"
 
-    if (
-        support_phase
-        == "awaiting_session_confirmation"
-    ):
+    if support_phase == "awaiting_session_confirmation":
         return "support_session_decision"
 
-    if (
-        support_phase
-        == "confirming_session"
-    ):
+    if support_phase == "confirming_session":
         return "support_confirm_session"
 
-    if (
-        support_phase
-        == "searching_alternative"
-    ):
+    if support_phase == "searching_alternative":
         return "support_alternative"
 
     return "end"
@@ -267,19 +245,14 @@ def route_after_consent(
     un consentement Support explicite.
     """
 
-    support_phase = state.get(
-        "support_phase"
-    )
+    support_phase = state.get("support_phase")
 
     consent_confirmed = state.get(
         "consent_confirmed",
         False,
     )
 
-    if (
-        support_phase == "processing"
-        and consent_confirmed
-    ):
+    if support_phase == "processing" and consent_confirmed:
         return "support_process"
 
     return "end"
@@ -293,20 +266,12 @@ def route_after_session_decision(
     de session.
     """
 
-    support_phase = state.get(
-        "support_phase"
-    )
+    support_phase = state.get("support_phase")
 
-    if (
-        support_phase
-        == "confirming_session"
-    ):
+    if support_phase == "confirming_session":
         return "support_confirm_session"
 
-    if (
-        support_phase
-        == "searching_alternative"
-    ):
+    if support_phase == "searching_alternative":
         return "support_alternative"
 
     return "end"
@@ -316,6 +281,7 @@ def route_after_session_decision(
 # Newsletter
 # -------------------------------------
 
+
 def route_newsletter_entry(
     state: YouCodeState,
 ) -> NewsletterEntryRoute:
@@ -324,9 +290,7 @@ def route_newsletter_entry(
     à la phase actuelle.
     """
 
-    return _get_newsletter_phase_route(
-        state
-    )
+    return _get_newsletter_phase_route(state)
 
 
 def _get_newsletter_phase_route(
@@ -337,17 +301,12 @@ def _get_newsletter_phase_route(
     du workflow Newsletter.
     """
 
-    newsletter_phase = state.get(
-        "newsletter_phase"
-    )
+    newsletter_phase = state.get("newsletter_phase")
 
     if newsletter_phase == "collecting":
         return "newsletter_extract"
 
-    if (
-        newsletter_phase
-        == "awaiting_consent"
-    ):
+    if newsletter_phase == "awaiting_consent":
         return "newsletter_consent"
 
     if newsletter_phase == "processing":
@@ -371,10 +330,7 @@ def route_after_newsletter_extraction(
       réponse du visiteur.
     """
 
-    if (
-        state.get("newsletter_phase")
-        == "processing"
-    ):
+    if state.get("newsletter_phase") == "processing":
         return "newsletter_process"
 
     return "end"
@@ -390,19 +346,14 @@ def route_after_newsletter_consent(
     - refusé ou ambigu : fin du tour.
     """
 
-    newsletter_phase = state.get(
-        "newsletter_phase"
-    )
+    newsletter_phase = state.get("newsletter_phase")
 
     consent_confirmed = state.get(
         "newsletter_consent_confirmed",
         False,
     )
 
-    if (
-        newsletter_phase == "processing"
-        and consent_confirmed
-    ):
+    if newsletter_phase == "processing" and consent_confirmed:
         return "newsletter_process"
 
     return "end"

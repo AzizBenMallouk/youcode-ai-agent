@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -12,7 +13,7 @@ class CreateSubscriptionRequest(BaseModel):
 
 class SubscriptionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     reference: str
     email: str
     language: str
@@ -34,7 +35,7 @@ class UnsubscribeRequest(BaseModel):
 
 class AdminSubscriptionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: str
     email: str
     language: str
@@ -64,7 +65,7 @@ class CampaignCreateRequest(BaseModel):
 
 class CampaignResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: str
     reference: str
     title: str
@@ -91,7 +92,7 @@ class CampaignSendResponse(BaseModel):
 
 class DeliveryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: str
     recipient_email: str
     email_type: str

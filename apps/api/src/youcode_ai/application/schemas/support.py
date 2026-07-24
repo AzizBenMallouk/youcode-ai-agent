@@ -9,7 +9,6 @@ from pydantic import (
     Field,
     model_validator,
 )
-
 from youcode_ai.domain.enums import (
     Language,
     RequestStatus,
@@ -39,22 +38,15 @@ class SupportRequestCreate(BaseModel):
         max_length=1000,
     )
 
-    scheduled_test_date: (
-        date | None
-    ) = None
+    scheduled_test_date: date | None = None
 
-    requested_test_date: (
-        date | None
-    ) = None
+    requested_test_date: date | None = None
 
     @model_validator(mode="after")
     def validate_rescheduling(
         self,
     ) -> "SupportRequestCreate":
-        if (
-            self.request_type
-            != RequestType.TEST_RESCHEDULE
-        ):
+        if self.request_type != RequestType.TEST_RESCHEDULE:
             return self
 
         missing_fields: list[str] = []
@@ -63,28 +55,19 @@ class SupportRequestCreate(BaseModel):
             missing_fields.append("campus")
 
         if self.scheduled_test_date is None:
-            missing_fields.append(
-                "scheduled_test_date"
-            )
+            missing_fields.append("scheduled_test_date")
 
         if self.requested_test_date is None:
-            missing_fields.append(
-                "requested_test_date"
-            )
+            missing_fields.append("requested_test_date")
 
         if missing_fields:
             raise ValueError(
-                "Missing rescheduling fields: "
-                + ", ".join(missing_fields)
+                "Missing rescheduling fields: " + ", ".join(missing_fields)
             )
 
-        if (
-            self.requested_test_date
-            <= self.scheduled_test_date
-        ):
+        if self.requested_test_date <= self.scheduled_test_date:
             raise ValueError(
-                "The requested test date must "
-                "be after the scheduled test date."
+                "The requested test date must be after the scheduled test date."
             )
 
         return self

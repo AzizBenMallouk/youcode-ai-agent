@@ -1,7 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy import (
-    String,
     Boolean,
     DateTime,
+    String,
+)
+from sqlalchemy import (
     Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
@@ -9,14 +13,14 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from datetime import datetime
+from youcode_ai.domain.enums.auth import UserRole
 from youcode_ai.infrastructure.database.base import Base
 from youcode_ai.infrastructure.database.tables.common import (
+    enum_values,
     generate_uuid,
     utc_now,
-    enum_values,
 )
-from youcode_ai.domain.enums.auth import UserRole
+
 
 class UserTable(Base):
     __tablename__ = "users"

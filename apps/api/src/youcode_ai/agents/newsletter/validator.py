@@ -9,7 +9,6 @@ from email_validator import (
     validate_email,
 )
 
-
 MissingNewsletterField = Literal[
     "action",
     "email",
@@ -50,9 +49,7 @@ def get_missing_newsletter_fields(
     sont encore absentes ou invalides.
     """
 
-    missing: list[
-        MissingNewsletterField
-    ] = []
+    missing: list[MissingNewsletterField] = []
 
     action = draft.get("action")
 
@@ -62,9 +59,7 @@ def get_missing_newsletter_fields(
     }:
         missing.append("action")
 
-    email = normalize_email(
-        draft.get("email")
-    )
+    email = normalize_email(draft.get("email"))
 
     if email is None:
         missing.append("email")
@@ -76,10 +71,7 @@ def get_missing_newsletter_fields(
 
     # Les préférences sont obligatoires
     # uniquement pour une inscription.
-    if (
-        action == "subscribe"
-        and not topics
-    ):
+    if action == "subscribe" and not topics:
         missing.append("topics")
 
     return missing
@@ -88,9 +80,7 @@ def get_missing_newsletter_fields(
 def newsletter_draft_is_complete(
     draft: Mapping[str, Any],
 ) -> bool:
-    return not get_missing_newsletter_fields(
-        draft
-    )
+    return not get_missing_newsletter_fields(draft)
 
 
 QUESTION_BY_FIELD: dict[
@@ -98,39 +88,16 @@ QUESTION_BY_FIELD: dict[
     dict[str, str],
 ] = {
     "action": {
-        "fr": (
-            "Souhaitez-vous vous inscrire aux "
-            "notifications ou vous désinscrire ?"
-        ),
-        "en": (
-            "Would you like to subscribe to or "
-            "unsubscribe from notifications?"
-        ),
-        "ar": (
-            "هل ترغب في الاشتراك في الإشعارات "
-            "أم إلغاء الاشتراك؟"
-        ),
-        "darija": (
-            "بغيتي تسجل فالإشعارات ولا تحيد "
-            "الاشتراك ديالك؟"
-        ),
+        "fr": ("Souhaitez-vous vous inscrire aux notifications ou vous désinscrire ?"),
+        "en": ("Would you like to subscribe to or unsubscribe from notifications?"),
+        "ar": ("هل ترغب في الاشتراك في الإشعارات أم إلغاء الاشتراك؟"),
+        "darija": ("بغيتي تسجل فالإشعارات ولا تحيد الاشتراك ديالك؟"),
     },
     "email": {
-        "fr": (
-            "Quelle adresse e-mail souhaitez-vous "
-            "utiliser ?"
-        ),
-        "en": (
-            "Which email address would you like "
-            "to use?"
-        ),
-        "ar": (
-            "ما عنوان البريد الإلكتروني الذي "
-            "ترغب في استخدامه؟"
-        ),
-        "darija": (
-            "شنو هو الإيميل اللي بغيتي تستعمل؟"
-        ),
+        "fr": ("Quelle adresse e-mail souhaitez-vous utiliser ?"),
+        "en": ("Which email address would you like to use?"),
+        "ar": ("ما عنوان البريد الإلكتروني الذي ترغب في استخدامه؟"),
+        "darija": ("شنو هو الإيميل اللي بغيتي تستعمل؟"),
     },
     "topics": {
         "fr": (
@@ -162,9 +129,7 @@ def get_newsletter_question(
     field: MissingNewsletterField,
     language: str,
 ) -> str:
-    translations = QUESTION_BY_FIELD[
-        field
-    ]
+    translations = QUESTION_BY_FIELD[field]
 
     return translations.get(
         language,

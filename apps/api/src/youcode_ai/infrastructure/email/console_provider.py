@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from youcode_ai.application.ports.email_gateway import (
     EmailDeliveryResult,
-    EmailGateway,
     EmailMessage,
 )
 
@@ -20,9 +19,7 @@ class ConsoleEmailGateway:
         fake_id = f"console-{uuid4().hex[:12]}"
 
         logger.info(
-            "[EMAIL-CONSOLE] To=%s "
-            "Subject='%s' "
-            "MessageId=%s",
+            "[EMAIL-CONSOLE] To=%s Subject='%s' MessageId=%s",
             message.recipient,
             message.subject,
             fake_id,

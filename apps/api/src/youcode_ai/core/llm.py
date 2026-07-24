@@ -14,7 +14,7 @@ from langchain_ollama import (
     ChatOllama,
     OllamaEmbeddings,
 )
-
+from langchain_xai import ChatXAI
 from youcode_ai.core.config import settings
 
 
@@ -22,16 +22,11 @@ from youcode_ai.core.config import settings
 def create_chat_model() -> BaseChatModel:
     if settings.chat_provider == "gemini":
         if not settings.google_api_key:
-            raise RuntimeError(
-                "GOOGLE_API_KEY is required "
-                "for Gemini chat."
-            )
+            raise RuntimeError("GOOGLE_API_KEY is required for Gemini chat.")
 
         return ChatGoogleGenerativeAI(
             model=settings.gemini_chat_model,
-            google_api_key=(
-                settings.google_api_key
-            ),
+            google_api_key=(settings.google_api_key),
             temperature=0,
             max_retries=1,
         )
@@ -43,49 +38,32 @@ def create_chat_model() -> BaseChatModel:
             temperature=0,
         )
 
-    raise ValueError(
-        "Unsupported chat provider: "
-        f"{settings.chat_provider}"
-    )
+    if settings.chat_provider == "grok":
+        return ChatXAI(
+            model=settings.grok_chat_model,
+            xai_api_key=settings.grok_api_key,
+            temperature=0,
+            max_retries=1,
+        )
+
+    raise ValueError(f"Unsupported chat provider: {settings.chat_provider}")
 
 
 @lru_cache(maxsize=1)
 def create_embedding_model() -> Embeddings:
-    if (
-        settings.embedding_provider
-        == "gemini"
-    ):
+    if settings.embedding_provider == "gemini":
         if not settings.google_api_key:
-            raise RuntimeError(
-                "GOOGLE_API_KEY is required "
-                "for Gemini embeddings."
-            )
+            raise RuntimeError("GOOGLE_API_KEY is required for Gemini embeddings.")
 
         return GoogleGenerativeAIEmbeddings(
-            model=(
-                settings
-                .gemini_embedding_model
-            ),
-            google_api_key=(
-                settings.google_api_key
-            ),
+            model=(settings.gemini_embedding_model),
+            google_api_key=(settings.google_api_key),
         )
 
-    if (
-        settings.embedding_provider
-        == "ollama"
-    ):
+    if settings.embedding_provider == "ollama":
         return OllamaEmbeddings(
-            model=(
-                settings
-                .ollama_embedding_model
-            ),
-            base_url=(
-                settings.ollama_base_url
-            ),
+            model=(settings.ollama_embedding_model),
+            base_url=(settings.ollama_base_url),
         )
 
-    raise ValueError(
-        "Unsupported embedding provider: "
-        f"{settings.embedding_provider}"
-    )
+    raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")

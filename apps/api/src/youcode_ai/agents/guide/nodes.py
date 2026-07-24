@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from langchain_core.messages import (
@@ -6,7 +5,6 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
-
 from youcode_ai.agents.guide.service import (
     GuideAgentService,
 )
@@ -36,11 +34,7 @@ class GuideNodes:
             [],
         )
 
-        user_message = (
-            self._get_last_user_message(
-                messages
-            )
-        )
+        user_message = self._get_last_user_message(messages)
 
         if not user_message:
             return self._missing_message()
@@ -48,11 +42,7 @@ class GuideNodes:
         # On ne transmet pas le dernier
         # HumanMessage dans history car le
         # service l'ajoute lui-même.
-        history = (
-            self._history_before_last_user_message(
-                messages
-            )
-        )
+        history = self._history_before_last_user_message(messages)
 
         try:
             response = self.service.invoke(
@@ -60,26 +50,19 @@ class GuideNodes:
                 history=history,
             )
 
-            response_data = (
-                response.model_dump(
-                    mode="json"
-                )
-            )
+            response_data = response.model_dump(mode="json")
 
             return {
                 "active_agent": "guide",
-                "requires_human": (
-                    response.requires_human
-                ),
-                "messages": [
-                    AIMessage(
-                        content=response.answer
-                    )
-                ],
+                "requires_human": (response.requires_human),
+                "messages": [AIMessage(content=response.answer)],
                 "final_response": response_data,
             }
 
         except Exception:
+            import traceback
+
+            traceback.print_exc()
             return self._technical_error()
 
     @staticmethod
@@ -136,26 +119,16 @@ class GuideNodes:
         if last_user_index is None:
             return list(messages)
 
-        return list(
-            messages[:last_user_index]
-        )
+        return list(messages[:last_user_index])
 
     @staticmethod
-    def _missing_message(
-    ) -> dict[str, Any]:
-        answer = (
-            "Veuillez écrire une question "
-            "concernant YouCode."
-        )
+    def _missing_message() -> dict[str, Any]:
+        answer = "Veuillez écrire une question concernant YouCode."
 
         return {
             "active_agent": "guide",
             "requires_human": False,
-            "messages": [
-                AIMessage(
-                    content=answer
-                )
-            ],
+            "messages": [AIMessage(content=answer)],
             "final_response": {
                 "language": "fr",
                 "category": "general",
@@ -166,8 +139,7 @@ class GuideNodes:
         }
 
     @staticmethod
-    def _technical_error(
-    ) -> dict[str, Any]:
+    def _technical_error() -> dict[str, Any]:
         answer = (
             "Une erreur technique est "
             "survenue pendant la recherche. "
@@ -177,11 +149,7 @@ class GuideNodes:
         return {
             "active_agent": "guide",
             "requires_human": False,
-            "messages": [
-                AIMessage(
-                    content=answer
-                )
-            ],
+            "messages": [AIMessage(content=answer)],
             "final_response": {
                 "language": "fr",
                 "category": "practical",
@@ -193,6 +161,4 @@ class GuideNodes:
 
 
 def create_guide_nodes() -> GuideNodes:
-    return GuideNodes(
-        service=GuideAgentService()
-    )
+    return GuideNodes(service=GuideAgentService())

@@ -2,16 +2,17 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     Integer,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
 )
-
 from youcode_ai.domain.enums.campaign import CampaignStatus
 from youcode_ai.infrastructure.database.base import Base
 from youcode_ai.infrastructure.database.tables.common import (

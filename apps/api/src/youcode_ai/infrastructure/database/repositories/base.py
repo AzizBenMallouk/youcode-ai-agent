@@ -12,11 +12,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import (
     ColumnElement,
 )
-
 from youcode_ai.infrastructure.database.base import (
     Base,
 )
-
 
 ModelType = TypeVar(
     "ModelType",
@@ -24,9 +22,7 @@ ModelType = TypeVar(
 )
 
 
-class BaseRepository(
-    Generic[ModelType]
-):
+class BaseRepository(Generic[ModelType]):
     def __init__(
         self,
         *,
@@ -43,7 +39,6 @@ class BaseRepository(
         self.session.add(entity)
         self.session.flush()
         self.session.refresh(entity)
-
         return entity
 
     def save(
@@ -70,88 +65,47 @@ class BaseRepository(
         self,
         *conditions: ColumnElement[bool],
     ) -> ModelType | None:
-        statement = (
-            select(self.model_type)
-            .where(*conditions)
-            .limit(1)
-        )
+        statement = select(self.model_type).where(*conditions).limit(1)
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
 
     def count(
         self,
         *conditions: ColumnElement[bool],
     ) -> int:
-        statement = (
-            select(
-                func.count()
-            )
-            .select_from(
-                self.model_type
-            )
-            .where(*conditions)
-        )
+        statement = select(func.count()).select_from(self.model_type).where(*conditions)
 
-        return (
-            self.session.scalar(statement)
-            or 0
-        )
+        return self.session.scalar(statement) or 0
 
     def list_paginated(
         self,
         *,
         page: int = 1,
         page_size: int = 20,
-        conditions: list[
-            ColumnElement[bool]
-        ] | None = None,
+        conditions: list[ColumnElement[bool]] | None = None,
         order_by: Any | None = None,
     ) -> tuple[
         list[ModelType],
         int,
     ]:
         if page < 1:
-            raise ValueError(
-                "page must be greater than 0."
-            )
+            raise ValueError("page must be greater than 0.")
 
         if page_size < 1:
-            raise ValueError(
-                "page_size must be greater "
-                "than 0."
-            )
+            raise ValueError("page_size must be greater than 0.")
 
         filters = conditions or []
 
-        total = self.count(
-            *filters
-        )
+        total = self.count(*filters)
 
-        statement = (
-            select(self.model_type)
-            .where(*filters)
-        )
+        statement = select(self.model_type).where(*filters)
 
         if order_by is not None:
-            statement = statement.order_by(
-                order_by
-            )
+            statement = statement.order_by(order_by)
 
-        statement = (
-            statement
-            .offset(
-                (page - 1) * page_size
-            )
-            .limit(page_size)
-        )
+        statement = statement.offset((page - 1) * page_size).limit(page_size)
 
-        entities = list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        entities = list(self.session.scalars(statement).all())
 
         return entities, total
 
@@ -161,17 +115,9 @@ class BaseRepository(
         limit: int = 100,
         offset: int = 0,
     ) -> list[ModelType]:
-        statement = (
-            select(self.model_type)
-            .offset(offset)
-            .limit(limit)
-        )
+        statement = select(self.model_type).offset(offset).limit(limit)
 
-        return list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        return list(self.session.scalars(statement).all())
 
     def delete(
         self,

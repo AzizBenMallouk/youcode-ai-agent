@@ -5,11 +5,9 @@ from pydantic import (
     Field,
     field_validator,
 )
-
 from youcode_ai.domain.enums import (
     Language,
 )
-
 
 GuideCategory = Literal[
     "general",
@@ -26,26 +24,17 @@ GuideCategory = Literal[
 
 class GuideResponse(BaseModel):
     language: Language = Field(
-        description=(
-            "Langue dominante du visiteur : "
-            "fr, en, ar ou darija."
-        ),
+        description=("Langue dominante du visiteur : fr, en, ar ou darija."),
     )
 
     category: GuideCategory = Field(
-        description=(
-            "Catégorie de la question du "
-            "visiteur."
-        ),
+        description=("Catégorie de la question du visiteur."),
     )
 
     answer: str = Field(
         min_length=1,
         max_length=2000,
-        description=(
-            "Réponse finale courte, claire "
-            "et accueillante."
-        ),
+        description=("Réponse finale courte, claire et accueillante."),
     )
 
     information_available: bool = Field(
@@ -59,9 +48,7 @@ class GuideResponse(BaseModel):
 
     requires_human: bool = Field(
         description=(
-            "True uniquement lorsqu'une "
-            "intervention humaine est réellement "
-            "nécessaire."
+            "True uniquement lorsqu'une intervention humaine est réellement nécessaire."
         ),
     )
 
@@ -77,13 +64,9 @@ class GuideResponse(BaseModel):
         if not isinstance(value, str):
             return value
 
-        cleaned_value = " ".join(
-            value.split()
-        ).strip()
+        cleaned_value = " ".join(value.split()).strip()
 
         if not cleaned_value:
-            raise ValueError(
-                "Guide answer cannot be empty."
-            )
+            raise ValueError("Guide answer cannot be empty.")
 
         return cleaned_value[:2000]

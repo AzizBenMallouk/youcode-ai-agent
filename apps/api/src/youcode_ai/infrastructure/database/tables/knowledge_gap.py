@@ -2,17 +2,18 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     Integer,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     KnowledgeCategory,
     KnowledgeGapStatus,
@@ -37,24 +38,18 @@ class KnowledgeGapTable(Base):
         default=generate_uuid,
     )
 
-    canonical_question: Mapped[
-        str
-    ] = mapped_column(
+    canonical_question: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )
 
-    normalized_question: Mapped[
-        str
-    ] = mapped_column(
+    normalized_question: Mapped[str] = mapped_column(
         Text,
         nullable=False,
         index=True,
     )
 
-    category: Mapped[
-        KnowledgeCategory
-    ] = mapped_column(
+    category: Mapped[KnowledgeCategory] = mapped_column(
         SqlEnum(
             KnowledgeCategory,
             values_callable=enum_values,
@@ -65,9 +60,7 @@ class KnowledgeGapTable(Base):
         index=True,
     )
 
-    language: Mapped[
-        Language
-    ] = mapped_column(
+    language: Mapped[Language] = mapped_column(
         SqlEnum(
             Language,
             values_callable=enum_values,
@@ -78,9 +71,7 @@ class KnowledgeGapTable(Base):
         index=True,
     )
 
-    status: Mapped[
-        KnowledgeGapStatus
-    ] = mapped_column(
+    status: Mapped[KnowledgeGapStatus] = mapped_column(
         SqlEnum(
             KnowledgeGapStatus,
             values_callable=enum_values,
@@ -92,67 +83,47 @@ class KnowledgeGapTable(Base):
         index=True,
     )
 
-    occurrence_count: Mapped[
-        int
-    ] = mapped_column(
+    occurrence_count: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=1,
     )
 
-    vector_point_id: Mapped[
-        str | None
-    ] = mapped_column(
+    vector_point_id: Mapped[str | None] = mapped_column(
         String(100),
         unique=True,
         nullable=True,
     )
 
-    admin_notes: Mapped[
-        str | None
-    ] = mapped_column(
+    admin_notes: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    updated_at: Mapped[
-        datetime
-    ] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
         onupdate=utc_now,
     )
 
-    resolved_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    resolved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    questions: Mapped[
-        list["KnowledgeGapQuestionTable"]
-    ] = relationship(
+    questions: Mapped[list["KnowledgeGapQuestionTable"]] = relationship(
         back_populates="gap",
-        cascade=(
-            "all, delete-orphan"
-        ),
+        cascade=("all, delete-orphan"),
     )
 
-    answers: Mapped[
-        list["KnowledgeGapAnswerTable"]
-    ] = relationship(
+    answers: Mapped[list["KnowledgeGapAnswerTable"]] = relationship(
         back_populates="gap",
-        cascade=(
-            "all, delete-orphan"
-        ),
+        cascade=("all, delete-orphan"),
     )

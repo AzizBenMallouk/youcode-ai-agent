@@ -92,7 +92,6 @@ class YouCodeState(
     différents messages d'une conversation.
     """
 
-
     # -------------------------------
     # Conversation
     # -------------------------------
@@ -130,7 +129,6 @@ class YouCodeState(
     # doit intervenir.
     requires_human: bool
 
-
     # -------------------------------
     # Newsletter workflow
     # -------------------------------
@@ -149,7 +147,6 @@ class YouCodeState(
 
     subscription_reference: str | None
 
-
     # -------------------------------
     # Support workflow
     # -------------------------------
@@ -165,15 +162,15 @@ class YouCodeState(
         "cancelled",
     ]
 
+    # Brouillon non enregistré en base.
+    support_draft: SupportDraft
+
     proposed_session_id: str | None
 
     # Date et heure au format ISO.
     proposed_test_date: str | None
 
     rejected_session_ids: list[str]
-
-    # Brouillon non enregistré en base.
-    support_draft: SupportDraft
 
     # True après confirmation explicite.
     consent_confirmed: bool

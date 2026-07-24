@@ -4,18 +4,13 @@ from typing import Literal
 from pydantic import (
     BaseModel,
     Field,
-    field_validator,
 )
-
 from youcode_ai.domain.enums import (
     Language,
-    RequestType,
 )
 
 
-class SessionProposalDecision(
-    BaseModel
-):
+class SessionProposalDecision(BaseModel):
     decision: Literal[
         "accepted",
         "refused",
@@ -25,9 +20,7 @@ class SessionProposalDecision(
     evidence: str | None = None
 
 
-class SupportInformationExtraction(
-    BaseModel
-):
+class SupportInformationExtraction(BaseModel):
     """
     Informations extraites du dernier message
     du visiteur.
@@ -35,9 +28,7 @@ class SupportInformationExtraction(
     Une valeur absente du message doit être None.
     """
 
-    request_type: (
-        str | None
-    ) = Field(
+    request_type: str | None = Field(
         default=None,
         description=(
             "Type de demande détecté dans le "
@@ -47,18 +38,12 @@ class SupportInformationExtraction(
     )
 
     language: str = Field(
-        description=(
-            "Langue dominante du message : "
-            "fr, en, ar ou darija."
-        ),
+        description=("Langue dominante du message : fr, en, ar ou darija."),
     )
 
     email: str | None = Field(
         default=None,
-        description=(
-            "Adresse email explicitement "
-            "présente dans le message."
-        ),
+        description=("Adresse email explicitement présente dans le message."),
     )
 
     campus: str | None = Field(
@@ -70,42 +55,30 @@ class SupportInformationExtraction(
         ),
     )
 
-    scheduled_test_date: (
-        date | None
-    ) = Field(
+    scheduled_test_date: date | None = Field(
         default=None,
-        description=(
-            "Date actuelle du test du candidat. "
-            "Null si absente ou ambiguë."
-        ),
+        description=("Date actuelle du test du candidat. Null si absente ou ambiguë."),
     )
 
-    requested_test_date: (
-        date | None
-    ) = Field(
+    requested_test_date: date | None = Field(
         default=None,
         description=(
-            "Date souhaitée ou date à partir "
-            "de laquelle le candidat est "
-            "disponible."
+            "Date souhaitée ou date à partir de laquelle le candidat est disponible."
         ),
     )
 
     description: str | None = Field(
         default=None,
-        max_length=200,
+        max_length=2000,
         description=(
-            "Description ou motif du problème "
-            "explicitement donné par le "
-            "visiteur."
+            "Description ou motif du problème explicitement donné par le visiteur."
         ),
     )
 
     ambiguities: list[str] = Field(
         default_factory=list,
         description=(
-            "Liste des informations ambiguës "
-            "qui nécessitent une clarification."
+            "Liste des informations ambiguës qui nécessitent une clarification."
         ),
     )
 
@@ -130,10 +103,7 @@ class ConsentExtraction(BaseModel):
 
     evidence: str | None = Field(
         default=None,
-        description=(
-            "Courte partie de la réponse qui "
-            "justifie la classification."
-        ),
+        description=("Courte partie de la réponse qui justifie la classification."),
     )
 
 
@@ -153,7 +123,6 @@ class SupportWorkflowResponse(BaseModel):
         "requires_human",
         "error",
     ]
-
 
     proposed_test_date: str | None = None
 

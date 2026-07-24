@@ -2,17 +2,18 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     Language,
 )
@@ -27,9 +28,7 @@ from youcode_ai.infrastructure.database.tables.common import (
 
 
 class KnowledgeGapQuestionTable(Base):
-    __tablename__ = (
-        "knowledge_gap_questions"
-    )
+    __tablename__ = "knowledge_gap_questions"
 
     id: Mapped[str] = mapped_column(
         String(36),
@@ -46,31 +45,23 @@ class KnowledgeGapQuestionTable(Base):
         index=True,
     )
 
-    session_id: Mapped[
-        str | None
-    ] = mapped_column(
+    session_id: Mapped[str | None] = mapped_column(
         String(200),
         nullable=True,
         index=True,
     )
 
-    original_question: Mapped[
-        str
-    ] = mapped_column(
+    original_question: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )
 
-    normalized_question: Mapped[
-        str
-    ] = mapped_column(
+    normalized_question: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )
 
-    language: Mapped[
-        Language
-    ] = mapped_column(
+    language: Mapped[Language] = mapped_column(
         SqlEnum(
             Language,
             values_callable=enum_values,
@@ -80,16 +71,12 @@ class KnowledgeGapQuestionTable(Base):
         nullable=False,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    gap: Mapped[
-        "KnowledgeGapTable"
-    ] = relationship(
+    gap: Mapped["KnowledgeGapTable"] = relationship(
         back_populates="questions",
     )

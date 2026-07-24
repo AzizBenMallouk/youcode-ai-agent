@@ -5,7 +5,6 @@ from email.mime.text import MIMEText
 
 from youcode_ai.application.ports.email_gateway import (
     EmailDeliveryResult,
-    EmailGateway,
     EmailMessage,
 )
 
@@ -89,23 +88,19 @@ class SmtpEmailGateway:
                 smtp.send_message(msg)
 
             logger.info(
-                "[EMAIL-SMTP] Sent to=%s "
-                "subject='%s'",
+                "[EMAIL-SMTP] Sent to=%s subject='%s'",
                 message.recipient,
                 message.subject,
             )
 
             return EmailDeliveryResult(
                 success=True,
-                provider_message_id=(
-                    msg["Message-ID"]
-                ),
+                provider_message_id=(msg["Message-ID"]),
             )
 
         except smtplib.SMTPException as exc:
             logger.error(
-                "[EMAIL-SMTP] Failed to=%s "
-                "error_type=%s",
+                "[EMAIL-SMTP] Failed to=%s error_type=%s",
                 message.recipient,
                 type(exc).__name__,
             )
@@ -117,14 +112,11 @@ class SmtpEmailGateway:
 
         except OSError as exc:
             logger.error(
-                "[EMAIL-SMTP] Connection "
-                "error: %s",
+                "[EMAIL-SMTP] Connection error: %s",
                 type(exc).__name__,
             )
 
             return EmailDeliveryResult(
                 success=False,
-                error_message=(
-                    f"Connection error: {exc}"
-                ),
+                error_message=(f"Connection error: {exc}"),
             )

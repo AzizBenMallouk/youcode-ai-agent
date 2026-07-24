@@ -11,7 +11,6 @@ from qdrant_client.models import (
     Distance,
     VectorParams,
 )
-
 from youcode_ai.core.config import (
     settings,
 )
@@ -26,15 +25,10 @@ from youcode_ai.infrastructure.vector import (
 def detect_embedding_dimension(
     embeddings: Embeddings,
 ) -> int:
-    test_vector = embeddings.embed_query(
-        "YouCode embedding dimension test"
-    )
+    test_vector = embeddings.embed_query("YouCode embedding dimension test")
 
     if not test_vector:
-        raise RuntimeError(
-            "The embedding model returned "
-            "an empty vector."
-        )
+        raise RuntimeError("The embedding model returned an empty vector.")
 
     return len(test_vector)
 
@@ -51,25 +45,12 @@ def recreate_document_collection(
     par le script d'ingestion.
     """
 
-    collection_name = (
-        settings
-        .qdrant_documents_collection
-    )
+    collection_name = settings.qdrant_documents_collection
 
-    vector_size = (
-        detect_embedding_dimension(
-            embeddings
-        )
-    )
+    vector_size = detect_embedding_dimension(embeddings)
 
-    if client.collection_exists(
-        collection_name=collection_name
-    ):
-        client.delete_collection(
-            collection_name=(
-                collection_name
-            )
-        )
+    if client.collection_exists(collection_name=collection_name):
+        client.delete_collection(collection_name=(collection_name))
 
     client.create_collection(
         collection_name=collection_name,
@@ -86,25 +67,15 @@ def create_document_vector_store(
     *,
     client: QdrantClient | None = None,
     embeddings: Embeddings | None = None,
+    force_recreate: bool = False,
 ) -> QdrantVectorStore:
-    effective_client = (
-        client
-        or get_qdrant_client()
-    )
+    effective_client = client or get_qdrant_client()
 
-    effective_embeddings = (
-        embeddings
-        or create_embedding_model()
-    )
+    effective_embeddings = embeddings or create_embedding_model()
 
-    collection_name = (
-        settings
-        .qdrant_documents_collection
-    )
+    collection_name = settings.qdrant_documents_collection
 
-    if not effective_client.collection_exists(
-        collection_name=collection_name
-    ):
+    if not force_recreate and not effective_client.collection_exists(collection_name=collection_name):
         raise RuntimeError(
             "The Qdrant document collection "
             f"'{collection_name}' does not "

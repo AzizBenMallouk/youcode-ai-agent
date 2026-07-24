@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import secrets
 from dataclasses import dataclass
 from datetime import (
@@ -10,22 +11,20 @@ from datetime import (
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
-
 from youcode_ai.core.config import settings
-from youcode_ai.infrastructure.database.tables import (
-    ConsentGrantTable,
-    NewsletterSubscriptionTable,
-    NewsletterCampaignTable,
-    EmailDeliveryTable,
-)
+from youcode_ai.domain.enums.campaign import CampaignStatus
 from youcode_ai.infrastructure.database.repositories.newsletter import (
     NewsletterRepository,
 )
 from youcode_ai.infrastructure.database.repositories.newsletter_campaign import (
     NewsletterCampaignRepository,
 )
-from youcode_ai.domain.enums.campaign import CampaignStatus
-import json
+from youcode_ai.infrastructure.database.tables import (
+    ConsentGrantTable,
+    EmailDeliveryTable,
+    NewsletterCampaignTable,
+    NewsletterSubscriptionTable,
+)
 
 
 @dataclass(frozen=True)
@@ -42,11 +41,7 @@ class NewsletterService:
     ) -> None:
         self.session = session
 
-        self.repository = (
-            NewsletterRepository(
-                session=session
-            )
-        )
+        self.repository = NewsletterRepository(session=session)
 
     def subscribe(
         self,
@@ -66,22 +61,14 @@ class NewsletterService:
         """
 
         if not consent_confirmed:
-            raise ValueError(
-                "Explicit newsletter consent "
-                "is required."
-            )
+            raise ValueError("Explicit newsletter consent is required.")
 
         if not topics:
-            raise ValueError(
-                "At least one newsletter topic "
-                "is required."
-            )
+            raise ValueError("At least one newsletter topic is required.")
 
         now = datetime.now(timezone.utc)
 
-        normalized_email = (
-            email.strip().lower()
-        )
+        normalized_email = email.strip().lower()
 
         consent = self._create_consent(
             session_id=session_id,
@@ -89,34 +76,24 @@ class NewsletterService:
             now=now,
         )
 
-        subscription = (
-            self.repository.find_by_email(
-                normalized_email
-            )
-        )
+        subscription = self.repository.find_by_email(normalized_email)
 
         if subscription is None:
-            subscription = (
-                NewsletterSubscriptionTable(
-                    id=str(uuid4()),
-                    reference=(
-                        self._create_reference()
-                    ),
-                    email=normalized_email,
-                    language=language,
-                    campus=campus,
-                    status="active",
-                    consent_id=consent.id,
-                    subscribed_at=now,
-                    unsubscribed_at=None,
-                    created_at=now,
-                    updated_at=now,
-                )
+            subscription = NewsletterSubscriptionTable(
+                id=str(uuid4()),
+                reference=(self._create_reference()),
+                email=normalized_email,
+                language=language,
+                campus=campus,
+                status="active",
+                consent_id=consent.id,
+                subscribed_at=now,
+                unsubscribed_at=None,
+                created_at=now,
+                updated_at=now,
             )
 
-            self.repository.add(
-                subscription
-            )
+            self.repository.add(subscription)
 
         else:
             self.repository.activate(
@@ -156,15 +133,9 @@ class NewsletterService:
         pas révéler les abonnements enregistrés.
         """
 
-        normalized_email = (
-            email.strip().lower()
-        )
+        normalized_email = email.strip().lower()
 
-        subscription = (
-            self.repository.find_by_email(
-                normalized_email
-            )
-        )
+        subscription = self.repository.find_by_email(normalized_email)
 
         if subscription is None:
             return NewsletterOperationResult(
@@ -172,9 +143,7 @@ class NewsletterService:
                 reference=None,
             )
 
-        self.repository.deactivate(
-            subscription
-        )
+        self.repository.deactivate(subscription)
 
         self.session.flush()
 
@@ -190,18 +159,12 @@ class NewsletterService:
         email: str,
         now: datetime,
     ) -> ConsentGrantTable:
-        raw_token = secrets.token_urlsafe(
-            32
-        )
+        raw_token = secrets.token_urlsafe(32)
 
-        token_hash = hashlib.sha256(
-            raw_token.encode("utf-8")
-        ).hexdigest()
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
         subject_hash = hmac.new(
-            settings.consent_secret_key.encode(
-                "utf-8"
-            ),
+            settings.consent_secret_key.encode("utf-8"),
             email.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
@@ -210,24 +173,14 @@ class NewsletterService:
 
         consent = ConsentGrantTable(
             id=str(uuid4()),
-            reference=(
-                f"CONS-NL-{identifier[:12]}"
-            ),
+            reference=(f"CONS-NL-{identifier[:12]}"),
             token_hash=token_hash,
             session_id=session_id,
             purpose="newsletter",
             subject_hash=subject_hash,
-            consent_version=(
-                settings.consent_version
-            ),
+            consent_version=(settings.consent_version),
             created_at=now,
-            expires_at=(
-                now
-                + timedelta(
-                    minutes=settings
-                    .consent_token_ttl_minutes
-                )
-            ),
+            expires_at=(now + timedelta(minutes=settings.consent_token_ttl_minutes)),
             used_at=None,
             revoked_at=None,
         )
@@ -265,9 +218,12 @@ class NewsletterService:
     def get_subscription_by_id(self, id: str) -> NewsletterSubscriptionTable | None:
         from sqlalchemy import select
         from sqlalchemy.orm import selectinload
-        statement = select(NewsletterSubscriptionTable).options(
-            selectinload(NewsletterSubscriptionTable.preferences)
-        ).where(NewsletterSubscriptionTable.id == id)
+
+        statement = (
+            select(NewsletterSubscriptionTable)
+            .options(selectinload(NewsletterSubscriptionTable.preferences))
+            .where(NewsletterSubscriptionTable.id == id)
+        )
         return self.session.scalar(statement)
 
     def update_subscription_admin(
@@ -293,9 +249,19 @@ class NewsletterService:
     def create_campaign(self, data: dict) -> NewsletterCampaignTable:
         campaign_repo = NewsletterCampaignRepository(session=self.session)
         now = datetime.now(timezone.utc)
-        target_topics = json.dumps(data.get("target_topics")) if data.get("target_topics") else None
-        target_campuses = json.dumps(data.get("target_campuses")) if data.get("target_campuses") else None
-        target_languages = json.dumps(data.get("target_languages")) if data.get("target_languages") else None
+        target_topics = (
+            json.dumps(data.get("target_topics")) if data.get("target_topics") else None
+        )
+        target_campuses = (
+            json.dumps(data.get("target_campuses"))
+            if data.get("target_campuses")
+            else None
+        )
+        target_languages = (
+            json.dumps(data.get("target_languages"))
+            if data.get("target_languages")
+            else None
+        )
 
         campaign = NewsletterCampaignTable(
             id=str(uuid4()),
@@ -323,12 +289,17 @@ class NewsletterService:
         status: str | None = None,
     ) -> tuple[list[NewsletterCampaignTable], int]:
         campaign_repo = NewsletterCampaignRepository(session=self.session)
-        return campaign_repo.list_filtered(page=page, page_size=page_size, status=status)
+        return campaign_repo.list_filtered(
+            page=page, page_size=page_size, status=status
+        )
 
     def get_campaign(self, id: str) -> NewsletterCampaignTable | None:
         campaign_repo = NewsletterCampaignRepository(session=self.session)
         from sqlalchemy import select
-        statement = select(NewsletterCampaignTable).where(NewsletterCampaignTable.id == id)
+
+        statement = select(NewsletterCampaignTable).where(
+            NewsletterCampaignTable.id == id
+        )
         return self.session.scalar(statement)
 
     def send_campaign(self, id: str) -> dict:
@@ -337,17 +308,21 @@ class NewsletterService:
             raise ValueError("Campaign not found")
         if campaign.status != CampaignStatus.DRAFT:
             raise ValueError("Only DRAFT campaigns can be sent")
-            
+
         topics = json.loads(campaign.target_topics) if campaign.target_topics else None
-        campuses = json.loads(campaign.target_campuses) if campaign.target_campuses else None
-        languages = json.loads(campaign.target_languages) if campaign.target_languages else None
-        
+        campuses = (
+            json.loads(campaign.target_campuses) if campaign.target_campuses else None
+        )
+        languages = (
+            json.loads(campaign.target_languages) if campaign.target_languages else None
+        )
+
         subscribers = self.repository.get_active_by_criteria(
             topics=topics, campuses=campuses, languages=languages
         )
-        
+
         now = datetime.now(timezone.utc)
-        
+
         queued_count = 0
         for sub in subscribers:
             delivery = EmailDeliveryTable(
@@ -363,15 +338,15 @@ class NewsletterService:
             )
             self.session.add(delivery)
             queued_count += 1
-            
+
         campaign.status = CampaignStatus.SENDING
         campaign.total_recipients = queued_count
         campaign.updated_at = now
-        
+
         self.session.flush()
-        
+
         return {
             "campaign_reference": campaign.reference,
             "queued_count": queued_count,
-            "message": "Campaign queued successfully"
+            "message": "Campaign queued successfully",
         }

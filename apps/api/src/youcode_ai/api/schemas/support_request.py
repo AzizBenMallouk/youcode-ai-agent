@@ -3,6 +3,7 @@ from datetime import (
     datetime,
 )
 from typing import Literal
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -11,9 +12,7 @@ from pydantic import (
 )
 
 
-class SupportRequestResponse(
-    BaseModel
-):
+class SupportRequestResponse(BaseModel):
     reference: str
 
     request_type: str
@@ -44,29 +43,21 @@ class SupportRequestResponse(
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+    model_config = ConfigDict(from_attributes=True)
 
     review_note: str | None = None
     reviewed_at: datetime | None = None
 
 
-class SupportRequestListResponse(
-    BaseModel
-):
-    items: list[
-        SupportRequestResponse
-    ]
+class SupportRequestListResponse(BaseModel):
+    items: list[SupportRequestResponse]
 
     total: int
     page: int
     page_size: int
 
 
-class ApproveSupportRequest(
-    BaseModel
-):
+class ApproveSupportRequest(BaseModel):
     note: str | None = Field(
         default=None,
         max_length=1000,
@@ -84,16 +75,12 @@ class ApproveSupportRequest(
         if value is None:
             return None
 
-        text = " ".join(
-            str(value).split()
-        )
+        text = " ".join(str(value).split())
 
         return text or None
 
 
-class RejectSupportRequest(
-    BaseModel
-):
+class RejectSupportRequest(BaseModel):
     reason: str = Field(
         min_length=3,
         max_length=1000,
@@ -108,14 +95,10 @@ class RejectSupportRequest(
         cls,
         value: object,
     ) -> str:
-        return " ".join(
-            str(value).split()
-        )
+        return " ".join(str(value).split())
 
 
-class SupportRequestActionResponse(
-    BaseModel
-):
+class SupportRequestActionResponse(BaseModel):
     reference: str
 
     status: Literal[

@@ -11,12 +11,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-
-PROJECT_ROOT = (
-    Path(__file__)
-    .resolve()
-    .parents[5]
-)
+PROJECT_ROOT = Path(__file__).resolve().parents[5]
 
 ENV_FILE = PROJECT_ROOT / ".env"
 
@@ -42,6 +37,7 @@ class Settings(BaseSettings):
     chat_provider: Literal[
         "gemini",
         "ollama",
+        "grok",
     ]
 
     embedding_provider: Literal[
@@ -58,6 +54,10 @@ class Settings(BaseSettings):
     ollama_base_url: str
     ollama_chat_model: str
     ollama_embedding_model: str
+
+    # Grok
+    grok_api_key: str | None = None
+    grok_chat_model: str = "grok-2-latest"
 
     # LangGraph
     langgraph_checkpoint_path: str
@@ -85,9 +85,12 @@ class Settings(BaseSettings):
     )
 
     rag_score_threshold: float = Field(
-        ge=0,
-        le=1,
+        default=0.7,
+        ge=0.0,
+        le=1.0,
     )
+    rag_use_reranking: bool = Field(default=True)
+    rag_rerank_top_k: int = Field(default=5, gt=0)
 
     rag_parent_chunk_size: int = Field(
         ge=500,
@@ -117,7 +120,6 @@ class Settings(BaseSettings):
 
     email_api_url: str
 
-
     external_api_timeout: float = Field(
         gt=0,
         le=120,
@@ -142,9 +144,7 @@ class Settings(BaseSettings):
 
     # Email
     email_provider: str = "console"
-    email_from_address: str = (
-        "no-reply@youcode.ma"
-    )
+    email_from_address: str = "no-reply@youcode.ma"
     email_from_name: str = "YouCode"
     smtp_host: str = ""
     smtp_port: int = 587
@@ -161,35 +161,36 @@ class Settings(BaseSettings):
     ]
 
     # Auth
-    auth_secret_key: str = Field(min_length=32, default='replace-with-a-secure-random-key-at-least-32-chars')
+    auth_secret_key: str = Field(
+        min_length=32, default="replace-with-a-secure-random-key-at-least-32-chars"
+    )
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 7
     auth_cookie_secure: bool = False
-    auth_cookie_samesite: str = 'lax'
+    auth_cookie_samesite: str = "lax"
     auth_max_login_attempts: int = 5
     auth_lockout_minutes: int = 15
-    admin_initial_email: str = ''
-    admin_initial_password: str = ''
-
+    admin_initial_email: str = ""
+    admin_initial_password: str = ""
 
     @model_validator(mode="after")
     def validate_provider_configuration(
         self,
     ) -> "Settings":
         uses_gemini = (
-            self.chat_provider == "gemini"
-            or self.embedding_provider
-            == "gemini"
+            self.chat_provider == "gemini" or self.embedding_provider == "gemini"
         )
 
-        if (
-            uses_gemini
-            and not self.google_api_key
-        ):
+        if uses_gemini and not self.google_api_key:
             raise ValueError(
                 "GOOGLE_API_KEY is required when "
                 "Gemini is used as chat or "
                 "embedding provider."
+            )
+
+        if self.chat_provider == "grok" and not self.grok_api_key:
+            raise ValueError(
+                "GROK_API_KEY is required when Grok is used as chat provider."
             )
 
         return self

@@ -2,16 +2,17 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     String,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     Language,
     SubscriptionStatus,
@@ -27,9 +28,7 @@ from youcode_ai.infrastructure.database.tables.common import (
 
 
 class NewsletterSubscriptionTable(Base):
-    __tablename__ = (
-        "newsletter_subscriptions"
-    )
+    __tablename__ = "newsletter_subscriptions"
 
     id: Mapped[str] = mapped_column(
         String(36),
@@ -44,9 +43,7 @@ class NewsletterSubscriptionTable(Base):
         index=True,
     )
 
-    language: Mapped[
-        Language
-    ] = mapped_column(
+    language: Mapped[Language] = mapped_column(
         SqlEnum(
             Language,
             values_callable=enum_values,
@@ -63,9 +60,7 @@ class NewsletterSubscriptionTable(Base):
         index=True,
     )
 
-    status: Mapped[
-        SubscriptionStatus
-    ] = mapped_column(
+    status: Mapped[SubscriptionStatus] = mapped_column(
         SqlEnum(
             SubscriptionStatus,
             values_callable=enum_values,
@@ -87,49 +82,33 @@ class NewsletterSubscriptionTable(Base):
         index=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    updated_at: Mapped[
-        datetime
-    ] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
         onupdate=utc_now,
     )
 
-    unsubscribed_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    unsubscribed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    consent: Mapped[
-        "ConsentGrantTable"
-    ] = relationship(
-        back_populates=(
-            "newsletter_subscription"
-        ),
+    consent: Mapped["ConsentGrantTable"] = relationship(
+        back_populates=("newsletter_subscription"),
     )
 
-    preferences: Mapped[
-        list["NewsletterPreferenceTable"]
-    ] = relationship(
+    preferences: Mapped[list["NewsletterPreferenceTable"]] = relationship(
         back_populates="subscription",
         cascade="all, delete-orphan",
     )
 
-    email_deliveries: Mapped[
-        list["EmailDeliveryTable"]
-    ] = relationship(
+    email_deliveries: Mapped[list["EmailDeliveryTable"]] = relationship(
         back_populates="subscription",
     )
-
-    

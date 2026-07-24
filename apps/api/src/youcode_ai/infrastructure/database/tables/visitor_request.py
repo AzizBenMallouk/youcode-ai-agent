@@ -6,17 +6,18 @@ from datetime import (
 from sqlalchemy import (
     Date,
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     Language,
     RequestStatus,
@@ -48,9 +49,7 @@ class VisitorRequestTable(Base):
         index=True,
     )
 
-    request_type: Mapped[
-        RequestType
-    ] = mapped_column(
+    request_type: Mapped[RequestType] = mapped_column(
         SqlEnum(
             RequestType,
             values_callable=enum_values,
@@ -61,9 +60,7 @@ class VisitorRequestTable(Base):
         index=True,
     )
 
-    status: Mapped[
-        RequestStatus
-    ] = mapped_column(
+    status: Mapped[RequestStatus] = mapped_column(
         SqlEnum(
             RequestStatus,
             values_callable=enum_values,
@@ -81,9 +78,7 @@ class VisitorRequestTable(Base):
         index=True,
     )
 
-    language: Mapped[
-        Language
-    ] = mapped_column(
+    language: Mapped[Language] = mapped_column(
         SqlEnum(
             Language,
             values_callable=enum_values,
@@ -94,60 +89,44 @@ class VisitorRequestTable(Base):
         default=Language.FR,
     )
 
-    campus: Mapped[
-        str | None
-    ] = mapped_column(
+    campus: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         index=True,
     )
 
-    description: Mapped[
-        str | None
-    ] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    scheduled_test_date: Mapped[
-        date | None
-    ] = mapped_column(
+    scheduled_test_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
     )
 
-    requested_test_date: Mapped[
-        date | None
-    ] = mapped_column(
+    requested_test_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
     )
 
-    external_session_id: Mapped[
-        str | None
-    ] = mapped_column(
+    external_session_id: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
         index=True,
     )
 
-    proposed_test_date: Mapped[
-        datetime | None
-    ] = mapped_column(
+    proposed_test_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    decision_reason: Mapped[
-        str | None
-    ] = mapped_column(
+    decision_reason: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    processed_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    processed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -162,39 +141,29 @@ class VisitorRequestTable(Base):
         index=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    updated_at: Mapped[
-        datetime
-    ] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
         onupdate=utc_now,
     )
 
-    consent: Mapped[
-        "ConsentGrantTable"
-    ] = relationship(
+    consent: Mapped["ConsentGrantTable"] = relationship(
         back_populates="visitor_request",
     )
 
-    review_note: Mapped[
-        str | None
-    ] = mapped_column(
+    review_note: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    reviewed_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    reviewed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

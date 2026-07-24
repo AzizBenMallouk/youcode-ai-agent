@@ -1,5 +1,4 @@
 import httpx
-
 from youcode_ai.infrastructure.integrations.registration_api.schemas import (
     RegistrationStatusData,
 )
@@ -13,9 +12,7 @@ class RegistrationApiClient:
         timeout: float,
         api_key: str | None = None,
     ) -> None:
-        self.base_url = (
-            base_url.rstrip("/")
-        )
+        self.base_url = base_url.rstrip("/")
 
         self.timeout = timeout
         self.api_key = api_key
@@ -36,9 +33,7 @@ class RegistrationApiClient:
         headers: dict[str, str] = {}
 
         if self.api_key:
-            headers["X-API-Key"] = (
-                self.api_key
-            )
+            headers["X-API-Key"] = self.api_key
 
         with httpx.Client(
             base_url=self.base_url,
@@ -52,9 +47,4 @@ class RegistrationApiClient:
 
             response.raise_for_status()
 
-            return (
-                RegistrationStatusData
-                .model_validate(
-                    response.json()
-                )
-            )
+            return RegistrationStatusData.model_validate(response.json())

@@ -22,16 +22,15 @@ from youcode_ai.infrastructure.database.tables.newsletter_preference import (
 from youcode_ai.infrastructure.database.tables.newsletter_subscription import (
     NewsletterSubscriptionTable,
 )
-from youcode_ai.infrastructure.database.tables.visitor_request import (
-    VisitorRequestTable,
+from youcode_ai.infrastructure.database.tables.refresh_token import (
+    RefreshTokenTable,
 )
 from youcode_ai.infrastructure.database.tables.user import (
     UserTable,
 )
-from youcode_ai.infrastructure.database.tables.refresh_token import (
-    RefreshTokenTable,
+from youcode_ai.infrastructure.database.tables.visitor_request import (
+    VisitorRequestTable,
 )
-
 
 __all__ = [
     "ConsentGrantTable",

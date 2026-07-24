@@ -1,16 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-
 from youcode_ai.api.dependencies.database import get_database_session
-from youcode_ai.application.services.factories import create_newsletter_service
 from youcode_ai.api.schemas.newsletter import (
     CreateSubscriptionRequest,
-    UpdatePreferencesRequest,
     UnsubscribeRequest,
-    SubscriptionResponse,
+    UpdatePreferencesRequest,
 )
+from youcode_ai.application.services.factories import create_newsletter_service
 
 router = APIRouter(prefix="/newsletter", tags=["Newsletter"])
+
 
 @router.post("/subscriptions", status_code=201)
 def create_subscription(
@@ -21,7 +20,7 @@ def create_subscription(
         raise HTTPException(status_code=400, detail="Consent is required")
 
     service = create_newsletter_service(session=session)
-    
+
     try:
         result = service.subscribe(
             session_id="web",
@@ -35,6 +34,7 @@ def create_subscription(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.get("/subscriptions/{reference}")
 def get_subscription(
     reference: str,
@@ -44,6 +44,7 @@ def get_subscription(
     # Minimal implementation for now
     raise HTTPException(status_code=501, detail="Not implemented")
 
+
 @router.patch("/subscriptions/{reference}")
 def update_subscription(
     reference: str,
@@ -51,6 +52,7 @@ def update_subscription(
     session: Session = Depends(get_database_session),
 ):
     raise HTTPException(status_code=501, detail="Not implemented")
+
 
 @router.post("/unsubscribe")
 def unsubscribe(

@@ -7,7 +7,6 @@ from youcode_ai.application.schemas.support import (
     SupportRequestResult,
 )
 
-
 __all__ = [
     "ConsentGrantResult",
     "SupportRequestCreate",

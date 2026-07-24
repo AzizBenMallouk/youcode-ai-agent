@@ -5,7 +5,6 @@ from langchain.agents.structured_output import (
     ToolStrategy,
 )
 from langgraph.graph.state import CompiledStateGraph
-
 from youcode_ai.agents.guide.prompt import (
     GUIDE_AGENT_SYSTEM_PROMPT,
 )
@@ -21,8 +20,7 @@ from youcode_ai.core.llm import (
 
 
 @lru_cache(maxsize=1)
-def create_guide_agent(
-) -> CompiledStateGraph:
+def create_guide_agent() -> CompiledStateGraph:
     """
     Crée le Guide Agent de YouCode.
 
@@ -36,11 +34,7 @@ def create_guide_agent(
     return create_agent(
         model=create_chat_model(),
         tools=create_guide_tools(),
-        system_prompt=(
-            GUIDE_AGENT_SYSTEM_PROMPT
-        ),
-        response_format=ToolStrategy(
-            GuideResponse
-        ),
+        system_prompt=(GUIDE_AGENT_SYSTEM_PROMPT),
+        response_format=ToolStrategy(GuideResponse),
         name="youcode_guide_agent",
     )

@@ -54,9 +54,7 @@ class ChatRequest(BaseModel):
         cls,
         value: object,
     ) -> str:
-        return " ".join(
-            str(value).split()
-        )
+        return " ".join(str(value).split())
 
 
 class ChatResponse(BaseModel):
@@ -90,9 +88,7 @@ class ChatResponse(BaseModel):
     # Informations propres à chaque workflow :
     # référence Support, date proposée,
     # référence Newsletter, catégorie RAG, etc.
-    data: dict[str, Any] = Field(
-        default_factory=dict
-    )
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatErrorResponse(BaseModel):

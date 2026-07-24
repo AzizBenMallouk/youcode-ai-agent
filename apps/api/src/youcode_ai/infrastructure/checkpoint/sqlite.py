@@ -5,15 +5,13 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite import (
     SqliteSaver,
 )
-
 from youcode_ai.core.config import (
     settings,
 )
 
 
 @lru_cache(maxsize=1)
-def create_sqlite_checkpointer(
-) -> SqliteSaver:
+def create_sqlite_checkpointer() -> SqliteSaver:
     """
     Crée un checkpointer SQLite persistant.
 
@@ -21,9 +19,7 @@ def create_sqlite_checkpointer(
     durée de vie de l'application.
     """
 
-    database_path = Path(
-        settings.langgraph_checkpoint_path
-    )
+    database_path = Path(settings.langgraph_checkpoint_path)
 
     database_path.parent.mkdir(
         parents=True,
@@ -35,17 +31,11 @@ def create_sqlite_checkpointer(
         check_same_thread=False,
     )
 
-    connection.execute(
-        "PRAGMA journal_mode=WAL"
-    )
+    connection.execute("PRAGMA journal_mode=WAL")
 
-    connection.execute(
-        "PRAGMA busy_timeout=5000"
-    )
+    connection.execute("PRAGMA busy_timeout=5000")
 
-    checkpointer = SqliteSaver(
-        connection
-    )
+    checkpointer = SqliteSaver(connection)
 
     checkpointer.setup()
 

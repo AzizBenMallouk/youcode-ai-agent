@@ -7,10 +7,10 @@ from fastapi import (
     Query,
 )
 
-from fake_test_session_api.data import (
+from .data import (
     TEST_SESSIONS,
 )
-from fake_test_session_api.schemas import (
+from .schemas import (
     TestSession,
     TestSessionListResponse,
     TestSessionStatus,

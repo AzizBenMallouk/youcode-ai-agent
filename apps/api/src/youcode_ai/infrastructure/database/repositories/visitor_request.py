@@ -1,9 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.elements import (
-    ColumnElement
-)
-
+from sqlalchemy.sql.elements import ColumnElement
 from youcode_ai.domain.enums import (
     RequestStatus,
     RequestType,
@@ -12,13 +9,12 @@ from youcode_ai.infrastructure.database.repositories.base import (
     BaseRepository,
 )
 from youcode_ai.infrastructure.database.tables import (
-    VisitorRequestTable,
     ConsentGrantTable,
+    VisitorRequestTable,
 )
 
-class VisitorRequestRepository(
-    BaseRepository[VisitorRequestTable]
-):
+
+class VisitorRequestRepository(BaseRepository[VisitorRequestTable]):
     def __init__(
         self,
         *,
@@ -33,16 +29,11 @@ class VisitorRequestRepository(
         self,
         reference: str,
     ) -> VisitorRequestTable | None:
-        statement = select(
-            VisitorRequestTable
-        ).where(
-            VisitorRequestTable.reference
-            == reference
+        statement = select(VisitorRequestTable).where(
+            VisitorRequestTable.reference == reference
         )
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
 
     def list_by_status(
         self,
@@ -53,24 +44,13 @@ class VisitorRequestRepository(
     ) -> list[VisitorRequestTable]:
         statement = (
             select(VisitorRequestTable)
-            .where(
-                VisitorRequestTable.status
-                == status
-            )
-            .order_by(
-                VisitorRequestTable
-                .created_at
-                .desc()
-            )
+            .where(VisitorRequestTable.status == status)
+            .order_by(VisitorRequestTable.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
 
-        return list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        return list(self.session.scalars(statement).all())
 
     def list_by_type(
         self,
@@ -81,25 +61,13 @@ class VisitorRequestRepository(
     ) -> list[VisitorRequestTable]:
         statement = (
             select(VisitorRequestTable)
-            .where(
-                VisitorRequestTable
-                .request_type
-                == request_type
-            )
-            .order_by(
-                VisitorRequestTable
-                .created_at
-                .desc()
-            )
+            .where(VisitorRequestTable.request_type == request_type)
+            .order_by(VisitorRequestTable.created_at.desc())
             .offset(offset)
             .limit(limit)
         )
 
-        return list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        return list(self.session.scalars(statement).all())
 
     def list_pending_support_requests(
         self,
@@ -116,19 +84,11 @@ class VisitorRequestRepository(
                     ]
                 )
             )
-            .order_by(
-                VisitorRequestTable
-                .created_at
-                .asc()
-            )
+            .order_by(VisitorRequestTable.created_at.asc())
             .limit(limit)
         )
 
-        return list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        return list(self.session.scalars(statement).all())
 
     def find_active_by_email_and_type(
         self,
@@ -146,26 +106,15 @@ class VisitorRequestRepository(
         statement = (
             select(VisitorRequestTable)
             .where(
-                VisitorRequestTable.email
-                == email.lower(),
-                VisitorRequestTable
-                .request_type
-                == request_type,
-                VisitorRequestTable.status.in_(
-                    active_statuses
-                ),
+                VisitorRequestTable.email == email.lower(),
+                VisitorRequestTable.request_type == request_type,
+                VisitorRequestTable.status.in_(active_statuses),
             )
-            .order_by(
-                VisitorRequestTable
-                .created_at
-                .desc()
-            )
+            .order_by(VisitorRequestTable.created_at.desc())
             .limit(1)
         )
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
 
     def find_by_reference_for_session(
         self,
@@ -177,29 +126,21 @@ class VisitorRequestRepository(
             select(VisitorRequestTable)
             .join(
                 ConsentGrantTable,
-                VisitorRequestTable.consent_id
-                == ConsentGrantTable.id,
+                VisitorRequestTable.consent_id == ConsentGrantTable.id,
             )
             .where(
-                VisitorRequestTable.reference
-                == reference,
-                ConsentGrantTable.session_id
-                == session_id,
+                VisitorRequestTable.reference == reference,
+                ConsentGrantTable.session_id == session_id,
             )
         )
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
 
     def find_by_reference(
         self,
         reference: str,
     ) -> VisitorRequestTable | None:
-        return self.find_one(
-            VisitorRequestTable.reference
-            == reference
-        )
+        return self.find_one(VisitorRequestTable.reference == reference)
 
     def list_filtered(
         self,
@@ -213,36 +154,20 @@ class VisitorRequestRepository(
         list[VisitorRequestTable],
         int,
     ]:
-        conditions: list[
-            ColumnElement[bool]
-        ] = []
+        conditions: list[ColumnElement[bool]] = []
 
         if request_type:
-            conditions.append(
-                VisitorRequestTable
-                .request_type
-                == request_type
-            )
+            conditions.append(VisitorRequestTable.request_type == request_type)
 
         if status:
-            conditions.append(
-                VisitorRequestTable.status
-                == status
-            )
+            conditions.append(VisitorRequestTable.status == status)
 
         if campus:
-            conditions.append(
-                VisitorRequestTable.campus
-                == campus
-            )
+            conditions.append(VisitorRequestTable.campus == campus)
 
         return self.list_paginated(
             page=page,
             page_size=page_size,
             conditions=conditions,
-            order_by=(
-                VisitorRequestTable
-                .created_at
-                .desc()
-            ),
+            order_by=(VisitorRequestTable.created_at.desc()),
         )

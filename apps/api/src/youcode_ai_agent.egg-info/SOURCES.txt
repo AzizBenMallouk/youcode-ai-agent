@@ -23,12 +23,10 @@ apps/api/src/youcode_ai/agents/support/schemas.py
 apps/api/src/youcode_ai/api/router.py
 apps/api/src/youcode_ai/api/dependencies/auth.py
 apps/api/src/youcode_ai/api/dependencies/database.py
-apps/api/src/youcode_ai/api/routes/admin_newsletter.py
-apps/api/src/youcode_ai/api/routes/admin_users.py
 apps/api/src/youcode_ai/api/routes/auth.py
-apps/api/src/youcode_ai/api/routes/chat.py
 apps/api/src/youcode_ai/api/routes/newsletter.py
 apps/api/src/youcode_ai/api/routes/support_requests.py
+apps/api/src/youcode_ai/api/routes/whatsapp.py
 apps/api/src/youcode_ai/api/schemas/auth.py
 apps/api/src/youcode_ai/api/schemas/chat.py
 apps/api/src/youcode_ai/api/schemas/newsletter.py
@@ -65,7 +63,9 @@ apps/api/src/youcode_ai/infrastructure/checkpoint/sqlite.py
 apps/api/src/youcode_ai/infrastructure/database/__init__.py
 apps/api/src/youcode_ai/infrastructure/database/base.py
 apps/api/src/youcode_ai/infrastructure/database/connection.py
+apps/api/src/youcode_ai/infrastructure/database/events.py
 apps/api/src/youcode_ai/infrastructure/database/initialize.py
+apps/api/src/youcode_ai/infrastructure/database/mcp_client.py
 apps/api/src/youcode_ai/infrastructure/database/repositories/__init__.py
 apps/api/src/youcode_ai/infrastructure/database/repositories/base.py
 apps/api/src/youcode_ai/infrastructure/database/repositories/consent.py
@@ -99,6 +99,7 @@ apps/api/src/youcode_ai/infrastructure/integrations/registration_api/schemas.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/__init__.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/client.py
 apps/api/src/youcode_ai/infrastructure/integrations/test_sessions/schemas.py
+apps/api/src/youcode_ai/infrastructure/mcp/google_sheets_server.py
 apps/api/src/youcode_ai/infrastructure/security/__init__.py
 apps/api/src/youcode_ai/infrastructure/security/password.py
 apps/api/src/youcode_ai/infrastructure/security/tokens.py

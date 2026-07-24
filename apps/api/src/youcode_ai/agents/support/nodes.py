@@ -1,4 +1,5 @@
 from datetime import date
+
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
@@ -8,7 +9,6 @@ from pydantic import (
     TypeAdapter,
     ValidationError,
 )
-
 from youcode_ai.agents.support.extractor import (
     SupportExtractor,
     create_support_extractor,
@@ -38,37 +38,18 @@ from youcode_ai.orchestration.state import (
     YouCodeState,
 )
 
-
-EMAIL_ADAPTER = TypeAdapter(
-    EmailStr
-)
+EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
 
 QUESTION_BY_FIELD = {
-    "request_type": (
-        "Pouvez-vous préciser le problème "
-        "que vous rencontrez ?"
-    ),
-    "email": (
-        "Quelle adresse e-mail avez-vous "
-        "utilisée pour votre candidature ?"
-    ),
+    "request_type": ("Pouvez-vous préciser le problème que vous rencontrez ?"),
+    "email": ("Quelle adresse e-mail avez-vous utilisée pour votre candidature ?"),
     "campus": (
-        "Dans quel campus votre test est-il "
-        "prévu : Safi, Youssoufia ou Nador ?"
+        "Dans quel campus votre test est-il prévu : Safi, Youssoufia ou Nador ?"
     ),
-    "scheduled_test_date": (
-        "Quelle est la date actuelle de "
-        "votre test ?"
-    ),
-    "requested_test_date": (
-        "À partir de quelle date "
-        "souhaitez-vous passer le test ?"
-    ),
-    "description": (
-        "Pouvez-vous décrire brièvement "
-        "la raison de votre demande ?"
-    ),
+    "scheduled_test_date": ("Quelle est la date actuelle de votre test ?"),
+    "requested_test_date": ("À partir de quelle date souhaitez-vous passer le test ?"),
+    "description": ("Pouvez-vous décrire brièvement la raison de votre demande ?"),
 }
 
 
@@ -76,14 +57,9 @@ class SupportNodes:
     def __init__(
         self,
         *,
-        extractor: (
-            SupportExtractor | None
-        ) = None,
+        extractor: (SupportExtractor | None) = None,
     ) -> None:
-        self.extractor = (
-            extractor
-            or create_support_extractor()
-        )
+        self.extractor = extractor or create_support_extractor()
 
     def extract_information(
         self,
@@ -94,9 +70,7 @@ class SupportNodes:
         informations du dernier message.
         """
 
-        message = self._get_last_user_message(
-            state
-        )
+        message = self._get_last_user_message(state)
 
         current_draft: SupportDraft = dict(
             state.get(
@@ -105,21 +79,14 @@ class SupportNodes:
             )
         )
 
-        extraction = (
-            self.extractor
-            .extract_information(
-                message=message,
-                current_draft=(
-                    current_draft
-                ),
-            )
+        extraction = self.extractor.extract_information(
+            message=message,
+            current_draft=(current_draft),
         )
 
-        extracted_values = (
-            extraction.model_dump(
-                exclude_none=True,
-                mode="json",
-            )
+        extracted_values = extraction.model_dump(
+            exclude_none=True,
+            mode="json",
         )
 
         updated_draft: SupportDraft = {
@@ -134,50 +101,24 @@ class SupportNodes:
             )
         )
 
-        email = updated_draft.get(
-            "email"
-        )
+        email = updated_draft.get("email")
 
-        if email and not self._is_valid_email(
-            email
-        ):
+        if email and not self._is_valid_email(email):
             updated_draft.pop(
                 "email",
                 None,
             )
 
-            ambiguities.append(
-                "L’adresse e-mail fournie "
-                "n’est pas valide."
-            )
+            ambiguities.append("L’adresse e-mail fournie n’est pas valide.")
 
-        scheduled_date = (
-            updated_draft.get(
-                "scheduled_test_date"
-            )
-        )
+        scheduled_date = updated_draft.get("scheduled_test_date")
 
-        requested_date = (
-            updated_draft.get(
-                "requested_test_date"
-            )
-        )
+        requested_date = updated_draft.get("requested_test_date")
 
-        if (
-            scheduled_date
-            and requested_date
-        ):
-            scheduled_date = (
-                date.fromisoformat(
-                    scheduled_date
-                )
-            )
+        if scheduled_date and requested_date:
+            scheduled_date = date.fromisoformat(scheduled_date)
 
-            requested_date = (
-                date.fromisoformat(
-                    requested_date
-                )
-            )
+            requested_date = date.fromisoformat(requested_date)
 
             if requested_date <= scheduled_date:
                 updated_draft.pop(
@@ -186,22 +127,15 @@ class SupportNodes:
                 )
 
                 ambiguities.append(
-                    "La nouvelle date doit être "
-                    "postérieure à la date "
-                    "actuelle du test."
-                )   
+                    "La nouvelle date doit être postérieure à la date actuelle du test."
+                )
 
-
-        updated_draft[
-            "ambiguities"
-        ] = ambiguities
+        updated_draft["ambiguities"] = ambiguities
 
         return {
             "active_agent": "support",
             "support_phase": "collecting",
-            "support_draft": (
-                updated_draft
-            ),
+            "support_draft": (updated_draft),
             "consent_confirmed": False,
             "final_response": None,
             "requires_human": False,
@@ -223,18 +157,12 @@ class SupportNodes:
             {},
         )
 
-        missing_fields = (
-            self._get_missing_fields(
-                draft
-            )
-        )
+        missing_fields = self._get_missing_fields(draft)
 
         if missing_fields:
             field_name = missing_fields[0]
 
-            answer = QUESTION_BY_FIELD[
-                field_name
-            ]
+            answer = QUESTION_BY_FIELD[field_name]
 
             return self._answer_update(
                 state=state,
@@ -243,17 +171,13 @@ class SupportNodes:
                 support_phase="collecting",
             )
 
-        answer = self._create_consent_message(
-            draft
-        )
+        answer = self._create_consent_message(draft)
 
         return self._answer_update(
             state=state,
             status="awaiting_consent",
             answer=answer,
-            support_phase=(
-                "awaiting_consent"
-            ),
+            support_phase=("awaiting_consent"),
         )
 
     def classify_consent(
@@ -265,21 +189,11 @@ class SupportNodes:
         lorsque le consentement a été demandé.
         """
 
-        message = self._get_last_user_message(
-            state
-        )
+        message = self._get_last_user_message(state)
 
-        extraction = (
-            self.extractor
-            .extract_consent(
-                message=message
-            )
-        )
+        extraction = self.extractor.extract_consent(message=message)
 
-        if (
-            extraction.decision
-            == "accepted"
-        ):
+        if extraction.decision == "accepted":
             return {
                 "active_agent": "support",
                 "support_phase": "processing",
@@ -288,14 +202,8 @@ class SupportNodes:
                 "requires_human": False,
             }
 
-        if (
-            extraction.decision
-            == "refused"
-        ):
-            answer = (
-                "Votre demande n’a pas été "
-                "enregistrée."
-            )
+        if extraction.decision == "refused":
+            answer = "Votre demande n’a pas été enregistrée."
 
             return self._answer_update(
                 state=state,
@@ -317,9 +225,7 @@ class SupportNodes:
             state=state,
             status="awaiting_consent",
             answer=answer,
-            support_phase=(
-                "awaiting_consent"
-            ),
+            support_phase=("awaiting_consent"),
         )
 
     def process_request(
@@ -338,18 +244,14 @@ class SupportNodes:
             False,
         ):
             answer = (
-                "Le consentement est nécessaire "
-                "avant l’enregistrement de la "
-                "demande."
+                "Le consentement est nécessaire avant l’enregistrement de la demande."
             )
 
             return self._answer_update(
                 state=state,
                 status="awaiting_consent",
                 answer=answer,
-                support_phase=(
-                    "awaiting_consent"
-                ),
+                support_phase=("awaiting_consent"),
             )
 
         draft = state.get(
@@ -358,85 +260,36 @@ class SupportNodes:
         )
 
         try:
-            request_data = (
-                SupportRequestCreate(
-                    session_id=state[
-                        "session_id"
-                    ],
-                    request_type=draft[
-                        "request_type"
-                    ],
-                    email=draft["email"],
-                    language=draft.get(
-                        "language",
-                        Language.FR.value,
-                    ),
-                    campus=draft.get(
-                        "campus"
-                    ),
-                    description=draft[
-                        "description"
-                    ],
-                    scheduled_test_date=(
-                        draft.get(
-                            "scheduled_test_date"
-                        )
-                    ),
-                    requested_test_date=(
-                        draft.get(
-                            "requested_test_date"
-                        )
-                    ),
-                )
+            request_data = SupportRequestCreate(
+                session_id=state["session_id"],
+                request_type=draft["request_type"],
+                email=draft["email"],
+                language=draft.get(
+                    "language",
+                    Language.FR.value,
+                ),
+                campus=draft.get("campus"),
+                description=draft["description"],
+                scheduled_test_date=(draft.get("scheduled_test_date")),
+                requested_test_date=(draft.get("requested_test_date")),
             )
 
             with database_session() as session:
-                support_service = (
-                    create_support_request_service(
-                        session=session
-                    )
-                )
+                support_service = create_support_request_service(session=session)
 
-                created_request = (
-                    support_service
-                    .create_request(
-                        request_data
-                    )
-                )
+                created_request = support_service.create_request(request_data)
 
-                if (
-                    request_data.request_type
-                    == RequestType
-                    .TEST_RESCHEDULE.value
-                ):
-                    rescheduling_service = (
-                        create_rescheduling_service(
-                            session=session
-                        )
+                if request_data.request_type == RequestType.TEST_RESCHEDULE.value:
+                    rescheduling_service = create_rescheduling_service(session=session)
+
+                    proposal = rescheduling_service.process(
+                        reference=(created_request.reference),
+                        session_id=state["session_id"],
                     )
 
-                    proposal = (
-                        rescheduling_service
-                        .process(
-                            reference=(
-                                created_request
-                                .reference
-                            ),
-                            session_id=state[
-                                "session_id"
-                            ],
-                        )
-                    )
+                    proposed_date = proposal.proposed_test_date
 
-                    proposed_date = (
-                        proposal.proposed_test_date
-                    )
-
-                    formatted_date = (
-                        proposed_date.strftime(
-                            "%d/%m/%Y à %H:%M"
-                        )
-                    )
+                    formatted_date = proposed_date.strftime("%d/%m/%Y à %H:%M")
 
                     answer = (
                         "Votre demande a été enregistrée "
@@ -452,23 +305,13 @@ class SupportNodes:
 
                     return self._answer_update(
                         state=state,
-                        status=(
-                            "awaiting_session_confirmation"
-                        ),
+                        status=("awaiting_session_confirmation"),
                         answer=answer,
-                        support_phase=(
-                            "awaiting_session_confirmation"
-                        ),
+                        support_phase=("awaiting_session_confirmation"),
                         active_agent="support",
-                        request_reference=(
-                            proposal.reference
-                        ),
-                        proposed_session_id=(
-                            proposal.external_session_id
-                        ),
-                        proposed_test_date=(
-                            proposed_date.isoformat()
-                        ),
+                        request_reference=(proposal.reference),
+                        proposed_session_id=(proposal.external_session_id),
+                        proposed_test_date=(proposed_date.isoformat()),
                         requires_human=False,
                     )
 
@@ -482,16 +325,12 @@ class SupportNodes:
 
                 return self._answer_update(
                     state=state,
-                    status=(
-                        "requires_human"
-                    ),
+                    status=("requires_human"),
                     answer=answer,
                     support_phase="completed",
                     active_agent=None,
-                    request_reference=(
-                        created_request.reference
-                    ),
-                    requires_human=True
+                    request_reference=(created_request.reference),
+                    requires_human=True,
                 )
 
         except (
@@ -505,30 +344,20 @@ class SupportNodes:
         except Exception:
             raise
 
-
     def classify_session_proposal(
         self,
         state: YouCodeState,
     ) -> dict:
-        message = self._get_last_user_message(
-            state
-        )
+        message = self._get_last_user_message(state)
 
-        decision = (
-            self.extractor
-            .extract_session_decision(
-                message=message,
-                proposed_test_date=state[
-                    "proposed_test_date"
-                ],
-            )
+        decision = self.extractor.extract_session_decision(
+            message=message,
+            proposed_test_date=state["proposed_test_date"],
         )
 
         if decision.decision == "accepted":
             return {
-                "support_phase": (
-                    "confirming_session"
-                ),
+                "support_phase": ("confirming_session"),
             }
 
         if decision.decision == "refused":
@@ -539,69 +368,38 @@ class SupportNodes:
                 )
             )
 
-            current_session_id = state.get(
-                "proposed_session_id"
-            )
+            current_session_id = state.get("proposed_session_id")
 
-            if (
-                current_session_id
-                and current_session_id
-                not in rejected_ids
-            ):
-                rejected_ids.append(
-                    current_session_id
-                )
+            if current_session_id and current_session_id not in rejected_ids:
+                rejected_ids.append(current_session_id)
 
             return {
-                "support_phase": (
-                    "searching_alternative"
-                ),
-                "rejected_session_ids": (
-                    rejected_ids
-                ),
+                "support_phase": ("searching_alternative"),
+                "rejected_session_ids": (rejected_ids),
             }
 
-        answer = (
-            "Cette date vous convient-elle ? "
-            "Répondez par oui ou non."
-        )
+        answer = "Cette date vous convient-elle ? Répondez par oui ou non."
 
         return self._answer_update(
             state=state,
-            status=(
-                "awaiting_session_confirmation"
-            ),
+            status=("awaiting_session_confirmation"),
             answer=answer,
-            support_phase=(
-                "awaiting_session_confirmation"
-            ),
+            support_phase=("awaiting_session_confirmation"),
         )
-
 
     def confirm_session_proposal(
         self,
         state: YouCodeState,
     ) -> dict:
         with database_session() as session:
-            service = (
-                create_rescheduling_service(
-                    session=session
-                )
-            )
+            service = create_rescheduling_service(session=session)
 
             result = service.confirm_proposal(
-                reference=state[
-                    "request_reference"
-                ],
-                session_id=state[
-                    "session_id"
-                ],
+                reference=state["request_reference"],
+                session_id=state["session_id"],
             )
 
-        proposed_date = (
-            result.proposed_test_date
-            .strftime("%d/%m/%Y à %H:%M")
-        )
+        proposed_date = result.proposed_test_date.strftime("%d/%m/%Y à %H:%M")
 
         answer = (
             f"La date du {proposed_date} a été "
@@ -616,35 +414,21 @@ class SupportNodes:
             answer=answer,
             support_phase="completed",
             active_agent=None,
-            request_reference=(
-                result.reference
-            ),
-            proposed_test_date=(
-                result.proposed_test_date
-                .isoformat()
-            ),
+            request_reference=(result.reference),
+            proposed_test_date=(result.proposed_test_date.isoformat()),
             requires_human=True,
         )
-
 
     def search_alternative_session(
         self,
         state: YouCodeState,
     ) -> dict:
         with database_session() as session:
-            service = (
-                create_rescheduling_service(
-                    session=session
-                )
-            )
+            service = create_rescheduling_service(session=session)
 
             result = service.propose_alternative(
-                reference=state[
-                    "request_reference"
-                ],
-                session_id=state[
-                    "session_id"
-                ],
+                reference=state["request_reference"],
+                session_id=state["session_id"],
                 excluded_session_ids=set(
                     state.get(
                         "rejected_session_ids",
@@ -653,10 +437,7 @@ class SupportNodes:
                 ),
             )
 
-        proposed_date = (
-            result.proposed_test_date
-            .strftime("%d/%m/%Y à %H:%M")
-        )
+        proposed_date = result.proposed_test_date.strftime("%d/%m/%Y à %H:%M")
 
         answer = (
             "Une autre session est disponible "
@@ -668,28 +449,15 @@ class SupportNodes:
 
         return self._answer_update(
             state=state,
-            status=(
-                "awaiting_session_confirmation"
-            ),
+            status=("awaiting_session_confirmation"),
             answer=answer,
-            support_phase=(
-                "awaiting_session_confirmation"
-            ),
+            support_phase=("awaiting_session_confirmation"),
             active_agent="support",
-            request_reference=(
-                result.reference
-            ),
-            proposed_session_id=(
-                result.external_session_id
-            ),
-            proposed_test_date=(
-                result.proposed_test_date
-                .isoformat()
-            ),
+            request_reference=(result.reference),
+            proposed_session_id=(result.external_session_id),
+            proposed_test_date=(result.proposed_test_date.isoformat()),
             requires_human=False,
         )
-
-    
 
     @staticmethod
     def _get_missing_fields(
@@ -697,47 +465,26 @@ class SupportNodes:
     ) -> list[str]:
         missing_fields: list[str] = []
 
-        request_type = draft.get(
-            "request_type"
-        )
+        request_type = draft.get("request_type")
 
         if request_type is None:
-            missing_fields.append(
-                "request_type"
-            )
+            missing_fields.append("request_type")
 
         if not draft.get("email"):
-            missing_fields.append(
-                "email"
-            )
+            missing_fields.append("email")
 
-        if (
-            request_type
-            == RequestType.TEST_RESCHEDULE.value
-        ):
+        if request_type == RequestType.TEST_RESCHEDULE.value:
             if not draft.get("campus"):
-                missing_fields.append(
-                    "campus"
-                )
+                missing_fields.append("campus")
 
-            if not draft.get(
-                "scheduled_test_date"
-            ):
-                missing_fields.append(
-                    "scheduled_test_date"
-                )
+            if not draft.get("scheduled_test_date"):
+                missing_fields.append("scheduled_test_date")
 
-            if not draft.get(
-                "requested_test_date"
-            ):
-                missing_fields.append(
-                    "requested_test_date"
-                )
+            if not draft.get("requested_test_date"):
+                missing_fields.append("requested_test_date")
 
         if not draft.get("description"):
-            missing_fields.append(
-                "description"
-            )
+            missing_fields.append("description")
 
         return missing_fields
 
@@ -745,29 +492,21 @@ class SupportNodes:
     def _get_last_user_message(
         state: YouCodeState,
     ) -> str:
-        for message in reversed(
-            state.get("messages", [])
-        ):
+        for message in reversed(state.get("messages", [])):
             if isinstance(
                 message,
                 HumanMessage,
             ):
-                return str(
-                    message.content
-                ).strip()
+                return str(message.content).strip()
 
-        raise ValueError(
-            "No user message was found."
-        )
+        raise ValueError("No user message was found.")
 
     @staticmethod
     def _is_valid_email(
         email: str,
     ) -> bool:
         try:
-            EMAIL_ADAPTER.validate_python(
-                email
-            )
+            EMAIL_ADAPTER.validate_python(email)
         except ValidationError:
             return False
 
@@ -777,27 +516,16 @@ class SupportNodes:
     def _create_consent_message(
         draft: SupportDraft,
     ) -> str:
-        request_type = draft.get(
-            "request_type"
-        )
+        request_type = draft.get("request_type")
 
         email = draft.get("email")
 
-        if (
-            request_type
-            == RequestType.TEST_RESCHEDULE.value
-        ):
-            campus = draft.get(
-                "campus"
-            )
+        if request_type == RequestType.TEST_RESCHEDULE.value:
+            campus = draft.get("campus")
 
-            scheduled_date = date.fromisoformat(draft.get(
-                "scheduled_test_date"
-            ))
+            scheduled_date = date.fromisoformat(draft.get("scheduled_test_date"))
 
-            requested_date = date.fromisoformat(draft.get(
-                "requested_test_date"
-            ))
+            requested_date = date.fromisoformat(draft.get("requested_test_date"))
 
             return (
                 "Récapitulatif : votre demande "
@@ -831,70 +559,38 @@ class SupportNodes:
         status: str,
         answer: str,
         support_phase: str,
-        active_agent: str | None = (
-            "support"
-        ),
-        request_reference: (
-            str | None
-        ) = None,
+        active_agent: str | None = ("support"),
+        request_reference: (str | None) = None,
         requires_human: bool = False,
-        proposed_test_date: (
-            str | None
-        ) = None,
-        proposed_session_id: (
-            str | None
-        ) = None,
+        proposed_test_date: (str | None) = None,
+        proposed_session_id: (str | None) = None,
     ) -> dict:
-        language = (
-            state.get(
-                "support_draft",
-                {},
-            ).get(
-                "language",
-                Language.FR,
-            )
+        language = state.get(
+            "support_draft",
+            {},
+        ).get(
+            "language",
+            Language.FR,
         )
 
         response = SupportWorkflowResponse(
             status=status,
             language=language,
             answer=answer,
-            request_reference=(
-                request_reference
-            ),
-            requires_human=(
-                requires_human
-            ),
-            proposed_test_date=(
-                proposed_test_date
-            ),
+            request_reference=(request_reference),
+            requires_human=(requires_human),
+            proposed_test_date=(proposed_test_date),
         )
 
         return {
-            "messages": [
-                AIMessage(
-                    content=answer
-                )
-            ],
+            "messages": [AIMessage(content=answer)],
             "active_agent": active_agent,
             "support_phase": support_phase,
-            "request_reference": (
-                request_reference
-            ),
-            "final_response": (
-                response.model_dump(
-                    mode="json"
-                )
-            ),
-            "requires_human": (
-                requires_human
-            ),
-            "proposed_test_date": (
-                proposed_test_date
-            ),
-            "proposed_session_id": (
-                proposed_session_id
-            ),
+            "request_reference": (request_reference),
+            "final_response": (response.model_dump(mode="json")),
+            "requires_human": (requires_human),
+            "proposed_test_date": (proposed_test_date),
+            "proposed_session_id": (proposed_session_id),
             "rejected_session_ids": (
                 state.get(
                     "rejected_session_ids",
@@ -904,6 +600,5 @@ class SupportNodes:
         }
 
 
-
-def create_support_nodes()-> SupportNodes:
+def create_support_nodes() -> SupportNodes:
     return SupportNodes()

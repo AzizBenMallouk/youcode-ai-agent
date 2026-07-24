@@ -9,5 +9,39 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: youcode-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+      - ./youcode-383711-be6f512e7af2.json:/app/youcode-383711-be6f512e7af2.json
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/youcode-383711-be6f512e7af2.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  whatsapp-bot:
+    build:
+      context: ./apps/whatsapp-bot
+      dockerfile: Dockerfile
+    container_name: youcode-whatsapp-bot
+    volumes:
+      - whatsapp_session:/app/.wwebjs_auth
+    environment:
+      - FASTAPI_URL=http://api:8000/api/v1/whatsapp/process
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   qdrant_data:
+  whatsapp_session:

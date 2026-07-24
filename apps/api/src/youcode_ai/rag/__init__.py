@@ -18,7 +18,6 @@ from youcode_ai.rag.vector_store import (
     recreate_document_collection,
 )
 
-
 __all__ = [
     "DocumentIngestionService",
     "IngestionResult",

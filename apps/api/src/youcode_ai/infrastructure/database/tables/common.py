@@ -11,15 +11,10 @@ def generate_uuid() -> str:
 
 
 def utc_now() -> datetime:
-    return datetime.now(
-        timezone.utc
-    )
+    return datetime.now(timezone.utc)
 
 
 def enum_values(
     enum_class: type[Enum],
 ) -> list[str]:
-    return [
-        item.value
-        for item in enum_class
-    ]
+    return [item.value for item in enum_class]

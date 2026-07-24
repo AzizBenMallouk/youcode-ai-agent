@@ -6,7 +6,6 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
-
 from youcode_ai.agents.newsletter.extractor import (
     NewsletterExtractor,
 )
@@ -24,7 +23,6 @@ from youcode_ai.infrastructure.database.connection import (
 from youcode_ai.orchestration.state import (
     YouCodeState,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -45,14 +43,10 @@ class NewsletterNodes:
         visiteur.
         """
 
-        message = self._last_user_message(
-            state.get("messages", [])
-        )
+        message = self._last_user_message(state.get("messages", []))
 
         if not message:
-            return self._error(
-                "Veuillez écrire votre demande."
-            )
+            return self._error("Veuillez écrire votre demande.")
 
         try:
             extraction = self.extractor.extract(
@@ -68,20 +62,12 @@ class NewsletterNodes:
                 exclude_none=True,
             )
 
-            normalized_email = normalize_email(
-                draft.get("email")
-            )
+            normalized_email = normalize_email(draft.get("email"))
 
             if normalized_email:
-                draft["email"] = (
-                    normalized_email
-                )
+                draft["email"] = normalized_email
 
-            missing = (
-                get_missing_newsletter_fields(
-                    draft
-                )
-            )
+            missing = get_missing_newsletter_fields(draft)
 
             language = draft.get(
                 "language",
@@ -98,9 +84,7 @@ class NewsletterNodes:
                     answer=answer,
                     language=language,
                     status="collecting",
-                    newsletter_phase=(
-                        "collecting"
-                    ),
+                    newsletter_phase=("collecting"),
                     newsletter_draft=draft,
                 )
 
@@ -110,44 +94,30 @@ class NewsletterNodes:
             # pas de consentement marketing.
             if action == "unsubscribe":
                 return {
-                    "active_agent": (
-                        "newsletter"
-                    ),
-                    "newsletter_phase": (
-                        "processing"
-                    ),
+                    "active_agent": ("newsletter"),
+                    "newsletter_phase": ("processing"),
                     "newsletter_draft": draft,
-                    "newsletter_consent_confirmed": (
-                        False
-                    ),
+                    "newsletter_consent_confirmed": (False),
                     "requires_human": False,
                 }
 
-            answer = (
-                self._consent_question(
-                    language=language,
-                    email=draft["email"],
-                    topics=draft["topics"],
-                )
+            answer = self._consent_question(
+                language=language,
+                email=draft["email"],
+                topics=draft["topics"],
             )
 
             return self._answer(
                 answer=answer,
                 language=language,
                 status="awaiting_consent",
-                newsletter_phase=(
-                    "awaiting_consent"
-                ),
+                newsletter_phase=("awaiting_consent"),
                 newsletter_draft=draft,
-                newsletter_consent_confirmed=(
-                    False
-                ),
+                newsletter_consent_confirmed=(False),
             )
 
         except Exception:
-            logger.exception(
-                "Newsletter extraction failed."
-            )
+            logger.exception("Newsletter extraction failed.")
 
             return self._technical_error()
 
@@ -159,9 +129,7 @@ class NewsletterNodes:
         Analyse la réponse oui/non du visiteur.
         """
 
-        message = self._last_user_message(
-            state.get("messages", [])
-        )
+        message = self._last_user_message(state.get("messages", []))
 
         draft = state.get(
             "newsletter_draft",
@@ -174,65 +142,41 @@ class NewsletterNodes:
         )
 
         try:
-            decision = (
-                self.extractor
-                .classify_consent(
-                    message=message or "",
-                )
+            decision = self.extractor.classify_consent(
+                message=message or "",
             )
 
             if decision.decision == "accepted":
                 return {
-                    "active_agent": (
-                        "newsletter"
-                    ),
-                    "newsletter_phase": (
-                        "processing"
-                    ),
-                    "newsletter_consent_confirmed": (
-                        True
-                    ),
+                    "active_agent": ("newsletter"),
+                    "newsletter_phase": ("processing"),
+                    "newsletter_consent_confirmed": (True),
                     "requires_human": False,
                 }
 
             if decision.decision == "refused":
-                answer = self._cancelled_answer(
-                    language
-                )
+                answer = self._cancelled_answer(language)
 
                 return self._answer(
                     answer=answer,
                     language=language,
                     status="cancelled",
-                    newsletter_phase=(
-                        "cancelled"
-                    ),
-                    newsletter_consent_confirmed=(
-                        False
-                    ),
+                    newsletter_phase=("cancelled"),
+                    newsletter_consent_confirmed=(False),
                 )
 
-            answer = self._unclear_consent_answer(
-                language
-            )
+            answer = self._unclear_consent_answer(language)
 
             return self._answer(
                 answer=answer,
                 language=language,
                 status="awaiting_consent",
-                newsletter_phase=(
-                    "awaiting_consent"
-                ),
-                newsletter_consent_confirmed=(
-                    False
-                ),
+                newsletter_phase=("awaiting_consent"),
+                newsletter_consent_confirmed=(False),
             )
 
         except Exception:
-            logger.exception(
-                "Newsletter consent "
-                "classification failed."
-            )
+            logger.exception("Newsletter consent classification failed.")
 
             return self._technical_error()
 
@@ -262,9 +206,7 @@ class NewsletterNodes:
 
         try:
             with database_session() as session:
-                service = NewsletterService(
-                    session=session
-                )
+                service = NewsletterService(session=session)
 
                 if action == "subscribe":
                     result = service.subscribe(
@@ -284,22 +226,12 @@ class NewsletterNodes:
                         ),
                     )
 
-                    answer = (
-                        self._subscribed_answer(
-                            language
-                        )
-                    )
+                    answer = self._subscribed_answer(language)
 
                 elif action == "unsubscribe":
-                    result = service.unsubscribe(
-                        email=email
-                    )
+                    result = service.unsubscribe(email=email)
 
-                    answer = (
-                        self._unsubscribed_answer(
-                            language
-                        )
-                    )
+                    answer = self._unsubscribed_answer(language)
 
                 else:
                     return self._technical_error()
@@ -307,30 +239,20 @@ class NewsletterNodes:
             return {
                 "active_agent": "newsletter",
                 "newsletter_phase": "completed",
-                "subscription_reference": (
-                    result.reference
-                ),
+                "subscription_reference": (result.reference),
                 "requires_human": False,
-                "messages": [
-                    AIMessage(
-                        content=answer
-                    )
-                ],
+                "messages": [AIMessage(content=answer)],
                 "final_response": {
                     "status": result.status,
                     "language": language,
                     "answer": answer,
-                    "subscription_reference": (
-                        result.reference
-                    ),
+                    "subscription_reference": (result.reference),
                     "requires_human": False,
                 },
             }
 
         except Exception:
-            logger.exception(
-                "Newsletter processing failed."
-            )
+            logger.exception("Newsletter processing failed.")
 
             return self._technical_error()
 
@@ -347,9 +269,7 @@ class NewsletterNodes:
                     message.content,
                     str,
                 ):
-                    content = (
-                        message.content.strip()
-                    )
+                    content = message.content.strip()
 
                     if content:
                         return content
@@ -367,15 +287,9 @@ class NewsletterNodes:
     ) -> dict[str, Any]:
         return {
             "active_agent": "newsletter",
-            "newsletter_phase": (
-                newsletter_phase
-            ),
+            "newsletter_phase": (newsletter_phase),
             "requires_human": False,
-            "messages": [
-                AIMessage(
-                    content=answer
-                )
-            ],
+            "messages": [AIMessage(content=answer)],
             "final_response": {
                 "status": status,
                 "language": language,
@@ -394,18 +308,13 @@ class NewsletterNodes:
         topics: list[str],
     ) -> str:
         topic_names = {
-            "full_program_registration": (
-                "inscriptions"
-            ),
+            "full_program_registration": ("inscriptions"),
             "bootcamps": "bootcamps",
             "events": "événements",
             "youcode_news": "actualités YouCode",
         }
 
-        displayed_topics = ", ".join(
-            topic_names.get(topic, topic)
-            for topic in topics
-        )
+        displayed_topics = ", ".join(topic_names.get(topic, topic) for topic in topics)
 
         if language == "en":
             return (
@@ -429,15 +338,11 @@ class NewsletterNodes:
     ) -> str:
         if language == "en":
             return (
-                "Your subscription has been "
-                "cancelled. No information was "
-                "registered."
+                "Your subscription has been cancelled. No information was registered."
             )
 
         return (
-            "Votre inscription a été annulée. "
-            "Aucune information n'a été "
-            "enregistrée."
+            "Votre inscription a été annulée. Aucune information n'a été enregistrée."
         )
 
     @staticmethod
@@ -452,9 +357,7 @@ class NewsletterNodes:
             )
 
         return (
-            "Confirmez-vous que vous acceptez de "
-            "recevoir ces notifications "
-            "(oui/non) ?"
+            "Confirmez-vous que vous acceptez de recevoir ces notifications (oui/non) ?"
         )
 
     @staticmethod
@@ -462,40 +365,25 @@ class NewsletterNodes:
         language: str,
     ) -> str:
         if language == "en":
-            return (
-                "Your notification preferences "
-                "have been registered."
-            )
+            return "Your notification preferences have been registered."
 
-        return (
-            "Vos préférences de notification ont "
-            "bien été enregistrées."
-        )
+        return "Vos préférences de notification ont bien été enregistrées."
 
     @staticmethod
     def _unsubscribed_answer(
         language: str,
     ) -> str:
         if language == "en":
-            return (
-                "Your request to stop receiving "
-                "notifications has been processed."
-            )
+            return "Your request to stop receiving notifications has been processed."
 
-        return (
-            "Votre demande de désinscription aux "
-            "notifications a bien été traitée."
-        )
+        return "Votre demande de désinscription aux notifications a bien été traitée."
 
     @classmethod
     def _technical_error(
         cls,
     ) -> dict[str, Any]:
         return cls._answer(
-            answer=(
-                "Une erreur technique est "
-                "survenue. Veuillez réessayer."
-            ),
+            answer=("Une erreur technique est survenue. Veuillez réessayer."),
             language="fr",
             status="error",
             newsletter_phase="cancelled",
@@ -514,8 +402,5 @@ class NewsletterNodes:
         )
 
 
-def create_newsletter_nodes(
-) -> NewsletterNodes:
-    return NewsletterNodes(
-        extractor=NewsletterExtractor()
-    )
+def create_newsletter_nodes() -> NewsletterNodes:
+    return NewsletterNodes(extractor=NewsletterExtractor())

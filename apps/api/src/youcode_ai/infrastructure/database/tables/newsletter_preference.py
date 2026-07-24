@@ -2,17 +2,18 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     String,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     NewsletterTopic,
 )
@@ -27,17 +28,13 @@ from youcode_ai.infrastructure.database.tables.common import (
 
 
 class NewsletterPreferenceTable(Base):
-    __tablename__ = (
-        "newsletter_preferences"
-    )
+    __tablename__ = "newsletter_preferences"
 
     __table_args__ = (
         UniqueConstraint(
             "subscription_id",
             "topic",
-            name=(
-                "uq_newsletter_subscription_topic"
-            ),
+            name=("uq_newsletter_subscription_topic"),
         ),
     )
 
@@ -47,9 +44,7 @@ class NewsletterPreferenceTable(Base):
         default=generate_uuid,
     )
 
-    subscription_id: Mapped[
-        str
-    ] = mapped_column(
+    subscription_id: Mapped[str] = mapped_column(
         ForeignKey(
             "newsletter_subscriptions.id",
             ondelete="CASCADE",
@@ -58,9 +53,7 @@ class NewsletterPreferenceTable(Base):
         index=True,
     )
 
-    topic: Mapped[
-        NewsletterTopic
-    ] = mapped_column(
+    topic: Mapped[NewsletterTopic] = mapped_column(
         SqlEnum(
             NewsletterTopic,
             values_callable=enum_values,
@@ -71,16 +64,12 @@ class NewsletterPreferenceTable(Base):
         index=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    subscription: Mapped[
-        "NewsletterSubscriptionTable"
-    ] = relationship(
+    subscription: Mapped["NewsletterSubscriptionTable"] = relationship(
         back_populates="preferences",
     )

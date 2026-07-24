@@ -15,9 +15,7 @@ class EmailMessage:
     from_address: str = ""
     from_name: str = ""
     reply_to: str = ""
-    headers: dict[str, str] = field(
-        default_factory=dict
-    )
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -35,5 +33,4 @@ class EmailGateway(Protocol):
     def send(
         self,
         message: EmailMessage,
-    ) -> EmailDeliveryResult:
-        ...
+    ) -> EmailDeliveryResult: ...

@@ -6,7 +6,6 @@ from langchain_core.documents import (
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
-
 from youcode_ai.core.config import (
     settings,
 )
@@ -18,17 +17,10 @@ class ParentChildDocuments:
     children: list[Document]
 
 
-def create_parent_splitter(
-) -> RecursiveCharacterTextSplitter:
+def create_parent_splitter() -> RecursiveCharacterTextSplitter:
     return RecursiveCharacterTextSplitter(
-        chunk_size=(
-            settings
-            .rag_parent_chunk_size
-        ),
-        chunk_overlap=(
-            settings
-            .rag_parent_chunk_overlap
-        ),
+        chunk_size=(settings.rag_parent_chunk_size),
+        chunk_overlap=(settings.rag_parent_chunk_overlap),
         separators=[
             "\n# ",
             "\n## ",
@@ -44,17 +36,10 @@ def create_parent_splitter(
     )
 
 
-def create_child_splitter(
-) -> RecursiveCharacterTextSplitter:
+def create_child_splitter() -> RecursiveCharacterTextSplitter:
     return RecursiveCharacterTextSplitter(
-        chunk_size=(
-            settings
-            .rag_child_chunk_size
-        ),
-        chunk_overlap=(
-            settings
-            .rag_child_chunk_overlap
-        ),
+        chunk_size=(settings.rag_child_chunk_size),
+        chunk_overlap=(settings.rag_child_chunk_overlap),
         separators=[
             "\n\n",
             "\n",
@@ -70,142 +55,82 @@ def create_child_splitter(
 def split_parent_child_documents(
     documents: list[Document],
 ) -> ParentChildDocuments:
-    parent_splitter = (
-        create_parent_splitter()
-    )
+    parent_splitter = create_parent_splitter()
 
-    child_splitter = (
-        create_child_splitter()
-    )
+    child_splitter = create_child_splitter()
 
     parents: list[Document] = []
     children: list[Document] = []
 
     for source_document in documents:
-        document_id = (
-            source_document
-            .metadata
-            .get("document_id")
-        )
+        document_id = source_document.metadata.get("document_id")
 
         if not document_id:
-            raise ValueError(
-                "Source document has no "
-                "document_id."
-            )
+            raise ValueError("Source document has no document_id.")
 
-        parent_chunks = (
-            parent_splitter
-            .split_documents(
-                [source_document]
-            )
-        )
+        parent_chunks = parent_splitter.split_documents([source_document])
 
-        for parent_index, parent in enumerate(
-            parent_chunks
-        ):
-            parent_id = (
-                f"{document_id}:parent:"
-                f"{parent_index}"
-            )
+        for parent_index, parent in enumerate(parent_chunks):
+            parent_id = f"{document_id}:parent:{parent_index}"
 
-            parent_start_index = (
-                parent.metadata.pop(
-                    "start_index",
-                    None,
-                )
+            parent_start_index = parent.metadata.pop(
+                "start_index",
+                None,
             )
 
             parent_metadata = {
                 **parent.metadata,
                 "chunk_type": "parent",
                 "parent_id": parent_id,
-                "parent_index": (
-                    parent_index
-                ),
+                "parent_index": (parent_index),
             }
 
             if parent_start_index is not None:
-                parent_metadata[
-                    "parent_start_index"
-                ] = parent_start_index
+                parent_metadata["parent_start_index"] = parent_start_index
 
             parent_document = Document(
-                page_content=(
-                    parent.page_content
-                ),
+                page_content=(parent.page_content),
                 metadata=parent_metadata,
             )
 
-            parents.append(
-                parent_document
-            )
+            parents.append(parent_document)
 
-            child_chunks = (
-                child_splitter
-                .split_documents(
-                    [parent_document]
-                )
-            )
+            child_chunks = child_splitter.split_documents([parent_document])
 
             for (
                 child_index,
                 child,
             ) in enumerate(child_chunks):
-                child_id = (
-                    f"{parent_id}:child:"
-                    f"{child_index}"
-                )
+                child_id = f"{parent_id}:child:{child_index}"
 
-                child_start_index = (
-                    child.metadata.pop(
-                        "start_index",
-                        None,
-                    )
+                child_start_index = child.metadata.pop(
+                    "start_index",
+                    None,
                 )
 
                 child_metadata = {
                     **child.metadata,
                     "chunk_type": "child",
                     "parent_id": parent_id,
-                    "parent_index": (
-                        parent_index
-                    ),
+                    "parent_index": (parent_index),
                     "child_id": child_id,
-                    "child_index": (
-                        child_index
-                    ),
+                    "child_index": (child_index),
                 }
 
-                if (
-                    child_start_index
-                    is not None
-                ):
-                    child_metadata[
-                        "child_start_index"
-                    ] = child_start_index
+                if child_start_index is not None:
+                    child_metadata["child_start_index"] = child_start_index
 
-                    if (
-                        parent_start_index
-                        is not None
-                    ):
-                        child_metadata[
-                            "global_start_index"
-                        ] = (
-                            parent_start_index
-                            + child_start_index
+                    if parent_start_index is not None:
+                        child_metadata["global_start_index"] = (
+                            parent_start_index + child_start_index
                         )
 
                 child_document = Document(
-                    page_content=(
-                        child.page_content
-                    ),
+                    page_content=(child.page_content),
                     metadata=child_metadata,
                 )
 
-                children.append(
-                    child_document
-                )
+                children.append(child_document)
 
     return ParentChildDocuments(
         parents=parents,

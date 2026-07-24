@@ -4,24 +4,19 @@ from datetime import (
 )
 
 from sqlalchemy.orm import Session
-
-from youcode_ai.infrastructure.database.tables import (
-    VisitorRequestTable,
-)
 from youcode_ai.infrastructure.database.repositories.visitor_request import (
     VisitorRequestRepository,
 )
+from youcode_ai.infrastructure.database.tables import (
+    VisitorRequestTable,
+)
 
 
-class SupportRequestNotFoundError(
-    LookupError
-):
+class SupportRequestNotFoundError(LookupError):
     pass
 
 
-class InvalidSupportTransitionError(
-    ValueError
-):
+class InvalidSupportTransitionError(ValueError):
     pass
 
 
@@ -31,11 +26,7 @@ class SupportAdminService:
         *,
         session: Session,
     ) -> None:
-        self.repository = (
-            VisitorRequestRepository(
-                session=session
-            )
-        )
+        self.repository = VisitorRequestRepository(session=session)
 
     def list_requests(
         self,
@@ -62,15 +53,10 @@ class SupportAdminService:
         *,
         reference: str,
     ) -> VisitorRequestTable:
-        request = (
-            self.repository
-            .find_by_reference(reference)
-        )
+        request = self.repository.find_by_reference(reference)
 
         if request is None:
-            raise SupportRequestNotFoundError(
-                "Support request not found."
-            )
+            raise SupportRequestNotFoundError("Support request not found.")
 
         return request
 
@@ -87,32 +73,21 @@ class SupportAdminService:
         dans la prochaine étape du projet.
         """
 
-        request = self.get_request(
-            reference=reference
-        )
+        request = self.get_request(reference=reference)
 
-        if (
-            request.request_type
-            != "test_reschedule"
-        ):
+        if request.request_type != "test_reschedule":
             raise InvalidSupportTransitionError(
-                "Only test rescheduling requests "
-                "can use this approval workflow."
+                "Only test rescheduling requests can use this approval workflow."
             )
 
         if request.status != "pending_approval":
             raise InvalidSupportTransitionError(
-                "Only a pending approval request "
-                "can be approved."
+                "Only a pending approval request can be approved."
             )
 
-        if (
-            not request.external_session_id
-            or not request.proposed_test_date
-        ):
+        if not request.external_session_id or not request.proposed_test_date:
             raise InvalidSupportTransitionError(
-                "The request has no valid "
-                "proposed session."
+                "The request has no valid proposed session."
             )
 
         now = datetime.now(timezone.utc)
@@ -122,9 +97,7 @@ class SupportAdminService:
         request.reviewed_at = now
         request.updated_at = now
 
-        return self.repository.save(
-            request
-        )
+        return self.repository.save(request)
 
     def reject(
         self,
@@ -132,9 +105,7 @@ class SupportAdminService:
         reference: str,
         reason: str,
     ) -> VisitorRequestTable:
-        request = self.get_request(
-            reference=reference
-        )
+        request = self.get_request(reference=reference)
 
         terminal_statuses = {
             "approved",
@@ -145,8 +116,7 @@ class SupportAdminService:
 
         if request.status in terminal_statuses:
             raise InvalidSupportTransitionError(
-                "A completed request cannot be "
-                "rejected."
+                "A completed request cannot be rejected."
             )
 
         now = datetime.now(timezone.utc)
@@ -156,6 +126,4 @@ class SupportAdminService:
         request.reviewed_at = now
         request.updated_at = now
 
-        return self.repository.save(
-            request
-        )
+        return self.repository.save(request)

@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 
 from sqlalchemy.orm import Session
-
 from youcode_ai.application.ports.email_gateway import (
     EmailGateway,
     EmailMessage,
@@ -14,9 +13,6 @@ from youcode_ai.core.config import settings
 from youcode_ai.domain.enums import (
     EmailDeliveryStatus,
     EmailType,
-)
-from youcode_ai.domain.exceptions import (
-    EmailDeliveryError,
 )
 from youcode_ai.infrastructure.database.repositories.email_delivery import (
     EmailDeliveryRepository,
@@ -42,11 +38,7 @@ class EmailService:
     ) -> None:
         self._session = session
         self._gateway = gateway
-        self._repository = (
-            EmailDeliveryRepository(
-                session=session
-            )
-        )
+        self._repository = EmailDeliveryRepository(session=session)
         self._renderer = EmailTemplateRenderer()
 
     def queue_email(
@@ -69,9 +61,7 @@ class EmailService:
         )
 
         delivery = EmailDeliveryTable(
-            recipient_email=(
-                recipient.strip().lower()
-            ),
+            recipient_email=(recipient.strip().lower()),
             email_type=email_type,
             subject=subject,
             template_name=template_name,
@@ -95,36 +85,22 @@ class EmailService:
         """Traite les e-mails en attente."""
 
         sent_ids: list[str] = []
-        max_attempts = (
-            settings.email_max_attempts
-        )
+        max_attempts = settings.email_max_attempts
 
-        deliveries = (
-            self._repository.get_pending(
-                batch_size=batch_size
-            )
-        )
+        deliveries = self._repository.get_pending(batch_size=batch_size)
 
         for delivery in deliveries:
-            if delivery.status == (
-                EmailDeliveryStatus.SENT
-            ):
+            if delivery.status == (EmailDeliveryStatus.SENT):
                 continue
 
-            if (
-                delivery.attempts or 0
-            ) >= max_attempts:
-                delivery.status = (
-                    EmailDeliveryStatus.FAILED
-                )
+            if (delivery.attempts or 0) >= max_attempts:
+                delivery.status = EmailDeliveryStatus.FAILED
                 self._session.flush()
                 continue
 
             self._send_delivery(delivery)
 
-            if delivery.status == (
-                EmailDeliveryStatus.SENT
-            ):
+            if delivery.status == (EmailDeliveryStatus.SENT):
                 sent_ids.append(delivery.id)
 
         return sent_ids
@@ -135,56 +111,38 @@ class EmailService:
     ) -> None:
         """Envoie un e-mail individuel."""
 
-        self._repository.mark_sending(
-            delivery
-        )
+        self._repository.mark_sending(delivery)
         self._session.flush()
 
         try:
             payload = {}
             if delivery.payload_json:
-                payload = json.loads(
-                    delivery.payload_json
-                )
+                payload = json.loads(delivery.payload_json)
 
-            subject, body_html, body_text = (
-                self._renderer.render(
-                    delivery.template_name
-                    or "default",
-                    payload,
-                )
+            subject, body_html, body_text = self._renderer.render(
+                delivery.template_name or "default",
+                payload,
             )
 
             message = EmailMessage(
-                recipient=(
-                    delivery.recipient_email
-                ),
+                recipient=(delivery.recipient_email),
                 subject=subject,
                 body_html=body_html,
                 body_text=body_text,
-                from_address=(
-                    settings.email_from_address
-                ),
-                from_name=(
-                    settings.email_from_name
-                ),
+                from_address=(settings.email_from_address),
+                from_name=(settings.email_from_name),
             )
 
-            result = self._gateway.send(
-                message
-            )
+            result = self._gateway.send(message)
 
             if result.success:
                 self._repository.mark_sent(
                     delivery,
-                    provider_message_id=(
-                        result.provider_message_id
-                    ),
+                    provider_message_id=(result.provider_message_id),
                 )
 
                 logger.info(
-                    "Email sent: id=%s "
-                    "to=%s type=%s",
+                    "Email sent: id=%s to=%s type=%s",
                     delivery.id,
                     delivery.recipient_email,
                     delivery.email_type.value,
@@ -192,15 +150,11 @@ class EmailService:
             else:
                 self._repository.mark_failed(
                     delivery,
-                    error=(
-                        result.error_message
-                        or "Unknown error"
-                    ),
+                    error=(result.error_message or "Unknown error"),
                 )
 
                 logger.warning(
-                    "Email failed: id=%s "
-                    "to=%s attempt=%d",
+                    "Email failed: id=%s to=%s attempt=%d",
                     delivery.id,
                     delivery.recipient_email,
                     delivery.attempts,
@@ -208,8 +162,7 @@ class EmailService:
 
         except Exception as exc:
             logger.error(
-                "Email error: id=%s "
-                "error_type=%s",
+                "Email error: id=%s error_type=%s",
                 delivery.id,
                 type(exc).__name__,
             )
@@ -224,6 +177,4 @@ class EmailService:
         *,
         delivery_id: str,
     ) -> EmailDeliveryTable | None:
-        return self._repository.get_by_id(
-            delivery_id
-        )
+        return self._repository.get_by_id(delivery_id)

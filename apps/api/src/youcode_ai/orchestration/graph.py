@@ -1,14 +1,13 @@
 from functools import lru_cache
 
-from youcode_ai.infrastructure.checkpoint.sqlite import (
-    create_sqlite_checkpointer,
-)
 from langgraph.graph import (
     END,
     START,
     StateGraph,
 )
-
+from youcode_ai.agents.guardrails.nodes import (
+    create_guardrail_nodes,
+)
 from youcode_ai.agents.guide.nodes import (
     create_guide_nodes,
 )
@@ -21,14 +20,17 @@ from youcode_ai.agents.supervisor.nodes import (
 from youcode_ai.agents.support.nodes import (
     SupportNodes,
 )
+from youcode_ai.infrastructure.checkpoint.sqlite import (
+    create_sqlite_checkpointer,
+)
 from youcode_ai.orchestration.routing import (
     route_after_consent,
     route_after_extraction,
+    route_after_guardrail,
     route_after_newsletter_consent,
     route_after_newsletter_extraction,
     route_after_session_decision,
     route_after_supervisor,
-    route_graph_entry,
 )
 from youcode_ai.orchestration.state import (
     YouCodeState,
@@ -37,20 +39,30 @@ from youcode_ai.orchestration.state import (
 
 @lru_cache(maxsize=1)
 def create_youcode_graph():
-    workflow = StateGraph(
-        YouCodeState
-    )
+    workflow = StateGraph(YouCodeState)
 
-    supervisor_nodes = (
-        create_supervisor_nodes()
-    )
+    supervisor_nodes = create_supervisor_nodes()
+
+    guardrail_nodes = create_guardrail_nodes()
 
     guide_nodes = create_guide_nodes()
 
     support_nodes = SupportNodes()
 
-    newsletter_nodes = (
-        create_newsletter_nodes()
+    newsletter_nodes = create_newsletter_nodes()
+
+    # ---------------------------------
+    # Nodes Guardrails
+    # ---------------------------------
+
+    workflow.add_node(
+        "input_guardrail",
+        guardrail_nodes.verify_message,
+    )
+
+    workflow.add_node(
+        "guardrail_refusal",
+        guardrail_nodes.refusal,
     )
 
     # ---------------------------------
@@ -87,18 +99,17 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_extract",
-        support_nodes.extract_request,
+        support_nodes.extract_information,
     )
 
     workflow.add_node(
         "support_missing",
-        support_nodes
-        .request_missing_information,
+        support_nodes.request_missing_information,
     )
 
     workflow.add_node(
         "support_consent",
-        support_nodes.handle_consent,
+        support_nodes.classify_consent,
     )
 
     workflow.add_node(
@@ -108,18 +119,17 @@ def create_youcode_graph():
 
     workflow.add_node(
         "support_session_decision",
-        support_nodes
-        .handle_session_decision,
+        support_nodes.classify_session_proposal,
     )
 
     workflow.add_node(
         "support_confirm_session",
-        support_nodes.confirm_session,
+        support_nodes.confirm_session_proposal,
     )
 
     workflow.add_node(
         "support_alternative",
-        support_nodes.propose_alternative,
+        support_nodes.search_alternative_session,
     )
 
     # ---------------------------------
@@ -145,42 +155,27 @@ def create_youcode_graph():
     # Entrée globale
     # ---------------------------------
 
+    workflow.add_edge(START, "input_guardrail")
+
     workflow.add_conditional_edges(
-        START,
-        route_graph_entry,
+        "input_guardrail",
+        route_after_guardrail,
         {
             "supervisor": "supervisor",
-
-            "support_extract": (
-                "support_extract"
-            ),
-            "support_consent": (
-                "support_consent"
-            ),
-            "support_process": (
-                "support_process"
-            ),
-            "support_session_decision": (
-                "support_session_decision"
-            ),
-            "support_confirm_session": (
-                "support_confirm_session"
-            ),
-            "support_alternative": (
-                "support_alternative"
-            ),
-
-            "newsletter_extract": (
-                "newsletter_extract"
-            ),
-            "newsletter_consent": (
-                "newsletter_consent"
-            ),
-            "newsletter_process": (
-                "newsletter_process"
-            ),
+            "support_extract": ("support_extract"),
+            "support_consent": ("support_consent"),
+            "support_process": ("support_process"),
+            "support_session_decision": ("support_session_decision"),
+            "support_confirm_session": ("support_confirm_session"),
+            "support_alternative": ("support_alternative"),
+            "newsletter_extract": ("newsletter_extract"),
+            "newsletter_consent": ("newsletter_consent"),
+            "newsletter_process": ("newsletter_process"),
+            "guardrail_refusal": "guardrail_refusal",
         },
     )
+
+    workflow.add_edge("guardrail_refusal", END)
 
     # ---------------------------------
     # Routage Supervisor
@@ -191,18 +186,10 @@ def create_youcode_graph():
         route_after_supervisor,
         {
             "guide": "guide",
-            "support_extract": (
-                "support_extract"
-            ),
-            "newsletter_extract": (
-                "newsletter_extract"
-            ),
-            "clarification": (
-                "clarification"
-            ),
-            "out_of_scope": (
-                "out_of_scope"
-            ),
+            "support_extract": ("support_extract"),
+            "newsletter_extract": ("newsletter_extract"),
+            "clarification": ("clarification"),
+            "out_of_scope": ("out_of_scope"),
         },
     )
 
@@ -230,9 +217,7 @@ def create_youcode_graph():
         "support_consent",
         route_after_consent,
         {
-            "support_process": (
-                "support_process"
-            ),
+            "support_process": ("support_process"),
             "end": END,
         },
     )
@@ -246,12 +231,8 @@ def create_youcode_graph():
         "support_session_decision",
         route_after_session_decision,
         {
-            "support_confirm_session": (
-                "support_confirm_session"
-            ),
-            "support_alternative": (
-                "support_alternative"
-            ),
+            "support_confirm_session": ("support_confirm_session"),
+            "support_alternative": ("support_alternative"),
             "end": END,
         },
     )
@@ -274,9 +255,7 @@ def create_youcode_graph():
         "newsletter_extract",
         route_after_newsletter_extraction,
         {
-            "newsletter_process": (
-                "newsletter_process"
-            ),
+            "newsletter_process": ("newsletter_process"),
             "end": END,
         },
     )
@@ -285,9 +264,7 @@ def create_youcode_graph():
         "newsletter_consent",
         route_after_newsletter_consent,
         {
-            "newsletter_process": (
-                "newsletter_process"
-            ),
+            "newsletter_process": ("newsletter_process"),
             "end": END,
         },
     )

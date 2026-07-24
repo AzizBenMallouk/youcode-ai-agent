@@ -8,7 +8,6 @@ from langchain_core.tools import (
     BaseTool,
     tool,
 )
-
 from youcode_ai.application.services.factories import (
     create_registration_service,
 )
@@ -21,13 +20,13 @@ from youcode_ai.rag.retriever import (
     create_parent_child_retriever,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
 # -------------------------------------
 # Formatage des documents RAG
 # -------------------------------------
+
 
 def format_documents_for_agent(
     result: RetrievalResult,
@@ -42,44 +41,22 @@ def format_documents_for_agent(
 
     if not result.information_available:
         return {
-            "status": (
-                "INFORMATION_NOT_AVAILABLE"
-            ),
+            "status": ("INFORMATION_NOT_AVAILABLE"),
             "question": result.question,
             "best_score": result.best_score,
             "documents": [],
         }
 
-    formatted_documents: list[
-        dict[str, Any]
-    ] = []
+    formatted_documents: list[dict[str, Any]] = []
 
     for parent in result.parents:
         formatted_documents.append(
             {
-                "content": (
-                    parent.page_content
-                ),
-                "source": (
-                    parent.metadata.get(
-                        "source"
-                    )
-                ),
-                "title": (
-                    parent.metadata.get(
-                        "title"
-                    )
-                ),
-                "category": (
-                    parent.metadata.get(
-                        "category"
-                    )
-                ),
-                "score": (
-                    parent.metadata.get(
-                        "retrieval_score"
-                    )
-                ),
+                "content": (parent.page_content),
+                "source": (parent.metadata.get("source")),
+                "title": (parent.metadata.get("title")),
+                "category": (parent.metadata.get("category")),
+                "score": (parent.metadata.get("retrieval_score")),
             }
         )
 
@@ -95,13 +72,12 @@ def format_documents_for_agent(
 # Tool RAG
 # -------------------------------------
 
+
 def create_search_youcode_knowledge_tool(
     *,
     retriever: ParentChildRetriever,
 ) -> BaseTool:
-    @tool(
-        "search_youcode_knowledge"
-    )
+    @tool("search_youcode_knowledge")
     def search_youcode_knowledge(
         question: str,
     ) -> dict[str, Any]:
@@ -121,42 +97,27 @@ def create_search_youcode_knowledge_tool(
         a final answer.
         """
 
-        normalized_question = (
-            question.strip()
-        )
+        normalized_question = question.strip()
 
         if not normalized_question:
             return {
-                "status": (
-                    "INFORMATION_NOT_AVAILABLE"
-                ),
+                "status": ("INFORMATION_NOT_AVAILABLE"),
                 "question": question,
                 "best_score": None,
                 "documents": [],
             }
 
         try:
-            result = retriever.retrieve(
-                normalized_question
-            )
+            result = retriever.retrieve(normalized_question)
 
-            return (
-                format_documents_for_agent(
-                    result
-                )
-            )
+            return format_documents_for_agent(result)
 
         except Exception:
-            logger.exception(
-                "YouCode knowledge search "
-                "failed."
-            )
+            logger.exception("YouCode knowledge search failed.")
 
             return {
                 "status": "SEARCH_UNAVAILABLE",
-                "question": (
-                    normalized_question
-                ),
+                "question": (normalized_question),
                 "best_score": None,
                 "documents": [],
             }
@@ -168,15 +129,12 @@ def create_search_youcode_knowledge_tool(
 # Tool Registration API
 # -------------------------------------
 
+
 def create_registration_status_tool(
     *,
-    registration_service: (
-        RegistrationService
-    ),
+    registration_service: (RegistrationService),
 ) -> BaseTool:
-    @tool(
-        "get_registration_status"
-    )
+    @tool("get_registration_status")
     def get_registration_status(
         program: Literal[
             "full_program",
@@ -186,7 +144,8 @@ def create_registration_status_tool(
             "Safi",
             "Youssoufia",
             "Nador",
-        ] | None = None,
+        ]
+        | None = None,
     ) -> dict[str, Any]:
         """
         Get dynamic official YouCode registration
@@ -204,94 +163,63 @@ def create_registration_status_tool(
         """
 
         try:
-            result = (
-                registration_service
-                .get_status(
-                    program=program,
-                    campus=campus,
-                )
+            result = registration_service.get_status(
+                program=program,
+                campus=campus,
             )
 
         except ValueError:
             logger.warning(
-                "Invalid registration query: "
-                "program=%s campus=%s.",
+                "Invalid registration query: program=%s campus=%s.",
                 program,
                 campus,
             )
 
             return {
-                "status": (
-                    "INVALID_REGISTRATION_QUERY"
-                ),
+                "status": ("INVALID_REGISTRATION_QUERY"),
                 "program": program,
                 "campus": campus,
             }
 
         except Exception:
-            logger.exception(
-                "Registration lookup failed."
-            )
+            logger.exception("Registration lookup failed.")
 
             return {
-                "status": (
-                    "REGISTRATION_SERVICE_"
-                    "UNAVAILABLE"
-                ),
+                "status": ("REGISTRATION_SERVICE_UNAVAILABLE"),
                 "program": program,
                 "campus": campus,
             }
 
         if not result.service_available:
             return {
-                "status": (
-                    "REGISTRATION_SERVICE_"
-                    "UNAVAILABLE"
-                ),
+                "status": ("REGISTRATION_SERVICE_UNAVAILABLE"),
                 "program": result.program,
                 "campus": result.campus,
             }
 
         if not result.information_available:
             return {
-                "status": (
-                    "REGISTRATION_INFORMATION_"
-                    "NOT_AVAILABLE"
-                ),
+                "status": ("REGISTRATION_INFORMATION_NOT_AVAILABLE"),
                 "program": result.program,
                 "campus": result.campus,
             }
 
         return {
-            "status": (
-                "REGISTRATION_DATA_FOUND"
-            ),
+            "status": ("REGISTRATION_DATA_FOUND"),
             "program": result.program,
             "campus": result.campus,
-            "registration_status": (
-                result.status
-            ),
+            "registration_status": (result.status),
             "opening_date": (
-                result.opening_date.isoformat()
-                if result.opening_date
-                else None
+                result.opening_date.isoformat() if result.opening_date else None
             ),
             "closing_date": (
-                result.closing_date.isoformat()
-                if result.closing_date
-                else None
+                result.closing_date.isoformat() if result.closing_date else None
             ),
-            "registration_url": (
-                result.registration_url
-            ),
-            "available_places": (
-                result.available_places
-            ),
+            "registration_url": (result.registration_url),
+            "available_places": (result.available_places),
             "message": result.message,
             "updated_at": (
-                result.updated_at.isoformat()
-                if result.updated_at
-                else None
+                result.updated_at.isoformat() if result.updated_at else None
             ),
         }
 
@@ -302,23 +230,13 @@ def create_registration_status_tool(
 # Factory des tools du Guide
 # -------------------------------------
 
-def create_guide_tools(
-) -> list[BaseTool]:
-    retriever = (
-        create_parent_child_retriever()
-    )
 
-    registration_service = (
-        create_registration_service()
-    )
+def create_guide_tools() -> list[BaseTool]:
+    retriever = create_parent_child_retriever()
+
+    registration_service = create_registration_service()
 
     return [
-        create_search_youcode_knowledge_tool(
-            retriever=retriever
-        ),
-        create_registration_status_tool(
-            registration_service=(
-                registration_service
-            )
-        ),
+        create_search_youcode_knowledge_tool(retriever=retriever),
+        create_registration_status_tool(registration_service=(registration_service)),
     ]

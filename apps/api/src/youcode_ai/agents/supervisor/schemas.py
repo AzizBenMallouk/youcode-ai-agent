@@ -6,7 +6,6 @@ from pydantic import (
     field_validator,
 )
 
-
 SupervisorRoute = Literal[
     "guide",
     "support",
@@ -51,9 +50,7 @@ class SupervisorDecision(BaseModel):
         if value is None:
             return None
 
-        text = " ".join(
-            str(value).split()
-        )
+        text = " ".join(str(value).split())
 
         return text or None
 
@@ -69,13 +66,7 @@ class SupervisorDecision(BaseModel):
     ) -> str | None:
         route = info.data.get("route")
 
-        if (
-            route == "clarification"
-            and not value
-        ):
-            return (
-                "Pouvez-vous préciser votre "
-                "demande concernant YouCode ?"
-            )
+        if route == "clarification" and not value:
+            return "Pouvez-vous préciser votre demande concernant YouCode ?"
 
         return value

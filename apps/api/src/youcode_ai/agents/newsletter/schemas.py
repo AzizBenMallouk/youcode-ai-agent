@@ -6,7 +6,6 @@ from pydantic import (
     field_validator,
 )
 
-
 NewsletterAction = Literal[
     "subscribe",
     "unsubscribe",
@@ -45,9 +44,7 @@ class NewsletterExtraction(BaseModel):
         max_length=320,
     )
 
-    topics: list[
-        NewsletterTopic
-    ] = Field(
+    topics: list[NewsletterTopic] = Field(
         default_factory=list,
     )
 
@@ -81,14 +78,10 @@ class NewsletterExtraction(BaseModel):
         cls,
         topics: list[NewsletterTopic],
     ) -> list[NewsletterTopic]:
-        return list(
-            dict.fromkeys(topics)
-        )
+        return list(dict.fromkeys(topics))
 
 
-class NewsletterConsentDecision(
-    BaseModel
-):
+class NewsletterConsentDecision(BaseModel):
     """
     Classification d'une réponse à la demande
     de consentement.
@@ -127,9 +120,7 @@ class NewsletterResponse(BaseModel):
         max_length=1000,
     )
 
-    subscription_reference: (
-        str | None
-    ) = None
+    subscription_reference: str | None = None
 
     requires_human: bool = False
 
@@ -142,6 +133,4 @@ class NewsletterResponse(BaseModel):
         cls,
         value: object,
     ) -> str:
-        return " ".join(
-            str(value).split()
-        )
+        return " ".join(str(value).split())

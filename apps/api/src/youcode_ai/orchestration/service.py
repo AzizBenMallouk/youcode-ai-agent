@@ -4,11 +4,9 @@ from typing import Any
 from langchain_core.messages import (
     HumanMessage,
 )
-
 from youcode_ai.orchestration.graph import (
     create_youcode_graph,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,39 +29,26 @@ class YouCodeOrchestrationService:
         conversation.
         """
 
-        clean_session_id = (
-            session_id.strip()
-        )
+        clean_session_id = session_id.strip()
 
         clean_message = message.strip()
 
         if not clean_session_id:
-            raise ValueError(
-                "session_id is required."
-            )
+            raise ValueError("session_id is required.")
 
         if not clean_message:
             return {
                 "status": "invalid_message",
                 "language": "fr",
-                "answer": (
-                    "Veuillez écrire un message."
-                ),
+                "answer": ("Veuillez écrire un message."),
                 "requires_human": False,
             }
 
         try:
             result = self.graph.invoke(
                 {
-                    "session_id": (
-                        clean_session_id
-                    ),
-                    "messages": [
-                        HumanMessage(
-                            content=clean_message
-                        )
-                    ],
-
+                    "session_id": (clean_session_id),
+                    "messages": [HumanMessage(content=clean_message)],
                     # Réinitialisation des champs
                     # propres à ce nouveau tour.
                     "final_response": None,
@@ -71,16 +56,12 @@ class YouCodeOrchestrationService:
                 },
                 config={
                     "configurable": {
-                        "thread_id": (
-                            clean_session_id
-                        ),
+                        "thread_id": (clean_session_id),
                     }
                 },
             )
 
-            final_response = result.get(
-                "final_response"
-            )
+            final_response = result.get("final_response")
 
             if isinstance(
                 final_response,
@@ -89,8 +70,7 @@ class YouCodeOrchestrationService:
                 return final_response
 
             logger.error(
-                "Graph returned no valid final "
-                "response for session %s.",
+                "Graph returned no valid final response for session %s.",
                 clean_session_id,
             )
 
@@ -98,8 +78,7 @@ class YouCodeOrchestrationService:
 
         except Exception:
             logger.exception(
-                "Graph execution failed for "
-                "session %s.",
+                "Graph execution failed for session %s.",
                 clean_session_id,
             )
 
@@ -127,24 +106,13 @@ class YouCodeOrchestrationService:
             }
         )
 
-        return dict(
-            snapshot.values or {}
-        )
+        return dict(snapshot.values or {})
 
     @staticmethod
-    def _technical_error(
-    ) -> dict[str, Any]:
+    def _technical_error() -> dict[str, Any]:
         return {
             "status": "error",
             "language": "fr",
-            "answer": (
-                "Une erreur technique est "
-                "survenue. Veuillez réessayer."
-            ),
+            "answer": ("Une erreur technique est survenue. Veuillez réessayer."),
             "requires_human": False,
         }
-
-
-def create_orchestration_service(
-) -> YouCodeOrchestrationService:
-    return YouCodeOrchestrationService()

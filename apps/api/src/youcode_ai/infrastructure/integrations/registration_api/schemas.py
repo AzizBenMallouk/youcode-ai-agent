@@ -7,9 +7,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class RegistrationStatusData(
-    BaseModel
-):
+class RegistrationStatusData(BaseModel):
     program: str
     campus: str | None = None
 

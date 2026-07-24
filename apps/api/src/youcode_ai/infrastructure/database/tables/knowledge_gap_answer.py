@@ -2,17 +2,18 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     KnowledgeAnswerStatus,
 )
@@ -27,9 +28,7 @@ from youcode_ai.infrastructure.database.tables.common import (
 
 
 class KnowledgeGapAnswerTable(Base):
-    __tablename__ = (
-        "knowledge_gap_answers"
-    )
+    __tablename__ = "knowledge_gap_answers"
 
     id: Mapped[str] = mapped_column(
         String(36),
@@ -51,23 +50,17 @@ class KnowledgeGapAnswerTable(Base):
         nullable=False,
     )
 
-    structured_answer: Mapped[
-        str | None
-    ] = mapped_column(
+    structured_answer: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    source_reference: Mapped[
-        str | None
-    ] = mapped_column(
+    source_reference: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    status: Mapped[
-        KnowledgeAnswerStatus
-    ] = mapped_column(
+    status: Mapped[KnowledgeAnswerStatus] = mapped_column(
         SqlEnum(
             KnowledgeAnswerStatus,
             values_callable=enum_values,
@@ -75,45 +68,33 @@ class KnowledgeGapAnswerTable(Base):
             length=30,
         ),
         nullable=False,
-        default=(
-            KnowledgeAnswerStatus.DRAFT
-        ),
+        default=(KnowledgeAnswerStatus.DRAFT),
         index=True,
     )
 
-    created_by: Mapped[
-        str | None
-    ] = mapped_column(
+    created_by: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    updated_at: Mapped[
-        datetime
-    ] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
         onupdate=utc_now,
     )
 
-    published_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    gap: Mapped[
-        "KnowledgeGapTable"
-    ] = relationship(
+    gap: Mapped["KnowledgeGapTable"] = relationship(
         back_populates="answers",
     )

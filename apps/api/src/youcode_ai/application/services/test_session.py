@@ -40,22 +40,16 @@ class TestSessionService:
             session
             for session in result.items
             if (
-                session.campus.lower()
-                == campus.strip().lower()
-                and session.status
-                == TestSessionStatus.OPEN
-                and session.available_capacity
-                > 0
-                and session.start_at.date()
-                >= date_from
+                session.campus.lower() == campus.strip().lower()
+                and session.status == TestSessionStatus.OPEN
+                and session.available_capacity > 0
+                and session.start_at.date() >= date_from
             )
         ]
 
         return sorted(
             compatible_sessions,
-            key=lambda session: (
-                session.start_at
-            ),
+            key=lambda session: session.start_at,
         )
 
     def find_best_session(
@@ -63,32 +57,22 @@ class TestSessionService:
         *,
         campus: str,
         requested_date: date,
-        excluded_session_ids: (
-            set[str] | None
-        ) = None,
+        excluded_session_ids: (set[str] | None) = None,
     ) -> TestSessionData:
-        excluded_ids = (
-            excluded_session_ids
-            or set()
-        )
+        excluded_ids = excluded_session_ids or set()
 
-        sessions = (
-            self.find_available_sessions(
-                campus=campus,
-                date_from=requested_date,
-            )
+        sessions = self.find_available_sessions(
+            campus=campus,
+            date_from=requested_date,
         )
 
         compatible_sessions = [
-            session
-            for session in sessions
-            if session.id not in excluded_ids
+            session for session in sessions if session.id not in excluded_ids
         ]
 
         if not compatible_sessions:
             raise NoAvailableTestSessionError(
-                "No other compatible test "
-                "session is available."
+                "No other compatible test session is available."
             )
 
         return compatible_sessions[0]
@@ -100,42 +84,24 @@ class TestSessionService:
         campus: str,
         requested_date: date,
     ) -> TestSessionData:
-        session = self.client.get_session(
-            session_id
-        )
+        session = self.client.get_session(session_id)
 
-        if (
-            session.status
-            != TestSessionStatus.OPEN
-        ):
-            raise TestSessionNotFoundError(
-                "The selected session "
-                "is not open."
-            )
+        if session.status != TestSessionStatus.OPEN:
+            raise TestSessionNotFoundError("The selected session is not open.")
 
         if session.available_capacity <= 0:
             raise TestSessionNotFoundError(
-                "The selected session "
-                "has no available capacity."
+                "The selected session has no available capacity."
             )
 
-        if (
-            session.campus.lower()
-            != campus.strip().lower()
-        ):
+        if session.campus.lower() != campus.strip().lower():
             raise TestSessionNotFoundError(
-                "The selected session does "
-                "not belong to the requested "
-                "campus."
+                "The selected session does not belong to the requested campus."
             )
 
-        if (
-            session.start_at.date()
-            < requested_date
-        ):
+        if session.start_at.date() < requested_date:
             raise TestSessionNotFoundError(
-                "The selected session is "
-                "before the requested date."
+                "The selected session is before the requested date."
             )
 
         return session

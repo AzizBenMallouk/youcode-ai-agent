@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from pydantic import BaseModel
-
 from youcode_ai.domain.enums import (
     ConsentPurpose,
 )

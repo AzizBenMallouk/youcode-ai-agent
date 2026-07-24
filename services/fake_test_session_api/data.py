@@ -3,7 +3,7 @@ from datetime import (
     timezone,
 )
 
-from fake_test_session_api.schemas import (
+from .schemas import (
     TestSession,
     TestSessionStatus,
     TestType,

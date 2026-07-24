@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import secrets
-
 from datetime import (
     datetime,
     timedelta,
@@ -48,58 +47,28 @@ class ConsentService:
         appelée après un consentement explicite.
         """
 
-        normalized_subject = (
-            self._normalize_subject(
-                subject
-            )
-        )
+        normalized_subject = self._normalize_subject(subject)
 
-        now = datetime.now(
-            timezone.utc
-        )
+        now = datetime.now(timezone.utc)
 
-        raw_token = secrets.token_urlsafe(
-            32
-        )
+        raw_token = secrets.token_urlsafe(32)
 
         consent = ConsentGrantTable(
-            reference=(
-                self._generate_reference()
-            ),
+            reference=(self._generate_reference()),
             session_id=session_id,
             purpose=purpose,
-            subject_hash=(
-                self._hash_subject(
-                    normalized_subject
-                )
-            ),
-            token_hash=(
-                self._hash_token(
-                    raw_token
-                )
-            ),
-            consent_version=(
-                settings.consent_version
-            ),
+            subject_hash=(self._hash_subject(normalized_subject)),
+            token_hash=(self._hash_token(raw_token)),
+            consent_version=(settings.consent_version),
             created_at=now,
-            expires_at=(
-                now
-                + timedelta(
-                    minutes=(
-                        settings
-                        .consent_token_ttl_minutes
-                    )
-                )
-            ),
+            expires_at=(now + timedelta(minutes=(settings.consent_token_ttl_minutes))),
             # Le consentement vient d'être
             # explicitement confirmé.
             used_at=now,
             revoked_at=None,
         )
 
-        consent = self.repository.add(
-            consent
-        )
+        consent = self.repository.add(consent)
 
         return ConsentGrantResult(
             id=consent.id,
@@ -114,51 +83,32 @@ class ConsentService:
         *,
         consent_id: str,
     ) -> None:
-        consent = (
-            self.repository.get_by_id(
-                consent_id
-            )
-        )
+        consent = self.repository.get_by_id(consent_id)
 
         if consent is None:
-            raise ConsentNotFoundError(
-                "Consent not found."
-            )
+            raise ConsentNotFoundError("Consent not found.")
 
         if consent.revoked_at is not None:
-            raise ConsentAlreadyRevokedError(
-                "Consent is already revoked."
-            )
+            raise ConsentAlreadyRevokedError("Consent is already revoked.")
 
-        consent.revoked_at = datetime.now(
-            timezone.utc
-        )
+        consent.revoked_at = datetime.now(timezone.utc)
 
-        self.repository.save(
-            consent
-        )
+        self.repository.save(consent)
 
     @staticmethod
     def _normalize_subject(
         subject: str,
     ) -> str:
-        normalized = (
-            subject.strip().lower()
-        )
+        normalized = subject.strip().lower()
 
         if not normalized:
-            raise ValueError(
-                "Consent subject cannot "
-                "be empty."
-            )
+            raise ValueError("Consent subject cannot be empty.")
 
         return normalized
 
     @staticmethod
     def _generate_reference() -> str:
-        identifier = (
-            uuid4().hex[:12].upper()
-        )
+        identifier = uuid4().hex[:12].upper()
 
         return f"CONS-{identifier}"
 
@@ -166,18 +116,14 @@ class ConsentService:
     def _hash_token(
         raw_token: str,
     ) -> str:
-        return hashlib.sha256(
-            raw_token.encode("utf-8")
-        ).hexdigest()
+        return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
     @staticmethod
     def _hash_subject(
         subject: str,
     ) -> str:
         return hmac.new(
-            settings.consent_secret_key.encode(
-                "utf-8"
-            ),
+            settings.consent_secret_key.encode("utf-8"),
             subject.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()

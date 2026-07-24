@@ -1,3 +1,6 @@
+from youcode_ai.domain.enums.auth import (
+    UserRole,
+)
 from youcode_ai.domain.enums.campaign import (
     CampaignStatus,
 )
@@ -20,10 +23,6 @@ from youcode_ai.domain.enums.request import (
     RequestStatus,
     RequestType,
 )
-from youcode_ai.domain.enums.auth import (
-    UserRole,
-)
-
 
 __all__ = [
     "CampaignStatus",

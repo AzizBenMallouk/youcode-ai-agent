@@ -1,15 +1,27 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.orm import Session
 from youcode_ai.core.config import settings
+from youcode_ai.domain.exceptions import (
+    AccountDisabledError,
+    AccountLockedError,
+    AuthenticationError,
+)
+from youcode_ai.infrastructure.database.repositories.refresh_token import (
+    RefreshTokenRepository,
+)
 from youcode_ai.infrastructure.database.repositories.user import UserRepository
-from youcode_ai.infrastructure.database.repositories.refresh_token import RefreshTokenRepository
-from youcode_ai.infrastructure.database.tables.user import UserTable
 from youcode_ai.infrastructure.database.tables.refresh_token import RefreshTokenTable
+from youcode_ai.infrastructure.database.tables.user import UserTable
 from youcode_ai.infrastructure.security.password import verify_password
-from youcode_ai.infrastructure.security.tokens import create_access_token, generate_refresh_token, hash_token
-from youcode_ai.domain.exceptions import AuthenticationError, AccountDisabledError, AccountLockedError
+from youcode_ai.infrastructure.security.tokens import (
+    create_access_token,
+    generate_refresh_token,
+    hash_token,
+)
 
 _login_attempts: dict[str, dict] = {}
+
 
 class AuthService:
     def __init__(self, *, session: Session):
@@ -22,7 +34,9 @@ class AuthService:
         record = _login_attempts.get(email)
         if record:
             if record["locked_until"] and record["locked_until"] > now:
-                raise AccountLockedError("Account temporarily locked due to too many failed attempts")
+                raise AccountLockedError(
+                    "Account temporarily locked due to too many failed attempts"
+                )
             if record["locked_until"] and record["locked_until"] <= now:
                 _login_attempts.pop(email)
 
@@ -34,12 +48,21 @@ class AuthService:
             _login_attempts[email]["count"] += 1
 
         if _login_attempts[email]["count"] >= settings.auth_max_login_attempts:
-            _login_attempts[email]["locked_until"] = now + timedelta(minutes=settings.auth_lockout_minutes)
+            _login_attempts[email]["locked_until"] = now + timedelta(
+                minutes=settings.auth_lockout_minutes
+            )
 
     def _clear_attempts(self, email: str) -> None:
         _login_attempts.pop(email, None)
 
-    def login(self, *, email: str, password: str, user_agent: str | None = None, ip_address: str | None = None) -> dict:
+    def login(
+        self,
+        *,
+        email: str,
+        password: str,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> dict:
         self._check_rate_limit(email)
 
         user = self.user_repo.find_by_email(email)
@@ -64,7 +87,9 @@ class AuthService:
 
         refresh_token_str = generate_refresh_token()
         refresh_token_hash = hash_token(refresh_token_str)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_ttl_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            days=settings.refresh_token_ttl_days
+        )
 
         refresh_token = RefreshTokenTable(
             user_id=user.id,
@@ -81,13 +106,23 @@ class AuthService:
             "refresh_token": refresh_token_str,
         }
 
-    def refresh(self, *, refresh_token_str: str, user_agent: str | None = None, ip_address: str | None = None) -> dict:
+    def refresh(
+        self,
+        *,
+        refresh_token_str: str,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> dict:
         token_hash = hash_token(refresh_token_str)
         token_record = self.refresh_repo.find_by_token_hash(token_hash)
-        
+
         now = datetime.now(timezone.utc)
 
-        if not token_record or token_record.revoked_at or token_record.expires_at <= now:
+        if (
+            not token_record
+            or token_record.revoked_at
+            or token_record.expires_at <= now
+        ):
             raise AuthenticationError("Invalid refresh token")
 
         user = token_record.user

@@ -6,7 +6,6 @@ from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
 )
-
 from youcode_ai.agents.newsletter.prompt import (
     NEWSLETTER_CONSENT_PROMPT,
     NEWSLETTER_EXTRACTION_PROMPT,
@@ -24,17 +23,9 @@ class NewsletterExtractor:
     def __init__(self) -> None:
         model = create_chat_model()
 
-        self.extraction_model = (
-            model.with_structured_output(
-                NewsletterExtraction
-            )
-        )
+        self.extraction_model = model.with_structured_output(NewsletterExtraction)
 
-        self.consent_model = (
-            model.with_structured_output(
-                NewsletterConsentDecision
-            )
-        )
+        self.consent_model = model.with_structured_output(NewsletterConsentDecision)
 
     def extract(
         self,
@@ -43,7 +34,8 @@ class NewsletterExtractor:
         current_draft: Mapping[
             str,
             Any,
-        ] | None = None,
+        ]
+        | None = None,
     ) -> NewsletterExtraction:
         """
         Extrait les informations du nouveau
@@ -53,48 +45,33 @@ class NewsletterExtractor:
         clean_message = message.strip()
 
         if not clean_message:
-            raise ValueError(
-                "Newsletter message is empty."
-            )
+            raise ValueError("Newsletter message is empty.")
 
-        draft = dict(
-            current_draft or {}
-        )
+        draft = dict(current_draft or {})
 
         payload = {
             "current_draft": draft,
-            "new_message": clean_message[
-                :4000
-            ],
+            "new_message": clean_message[:4000],
         }
 
-        result = (
-            self.extraction_model.invoke(
-                [
-                    SystemMessage(
-                        content=(
-                            NEWSLETTER_EXTRACTION_PROMPT
-                        )
-                    ),
-                    HumanMessage(
-                        content=json.dumps(
-                            payload,
-                            ensure_ascii=False,
-                            default=str,
-                        )
-                    ),
-                ]
-            )
+        result = self.extraction_model.invoke(
+            [
+                SystemMessage(content=(NEWSLETTER_EXTRACTION_PROMPT)),
+                HumanMessage(
+                    content=json.dumps(
+                        payload,
+                        ensure_ascii=False,
+                        default=str,
+                    )
+                ),
+            ]
         )
 
         if not isinstance(
             result,
             NewsletterExtraction,
         ):
-            raise RuntimeError(
-                "Newsletter extraction returned "
-                "an invalid result."
-            )
+            raise RuntimeError("Newsletter extraction returned an invalid result.")
 
         return self._merge_with_draft(
             current=draft,
@@ -114,22 +91,12 @@ class NewsletterExtractor:
         clean_message = message.strip()
 
         if not clean_message:
-            return NewsletterConsentDecision(
-                decision="unclear"
-            )
+            return NewsletterConsentDecision(decision="unclear")
 
         result = self.consent_model.invoke(
             [
-                SystemMessage(
-                    content=(
-                        NEWSLETTER_CONSENT_PROMPT
-                    )
-                ),
-                HumanMessage(
-                    content=clean_message[
-                        :1000
-                    ]
-                ),
+                SystemMessage(content=(NEWSLETTER_CONSENT_PROMPT)),
+                HumanMessage(content=clean_message[:1000]),
             ]
         )
 
@@ -138,8 +105,7 @@ class NewsletterExtractor:
             NewsletterConsentDecision,
         ):
             raise RuntimeError(
-                "Newsletter consent classifier "
-                "returned an invalid result."
+                "Newsletter consent classifier returned an invalid result."
             )
 
         return result
@@ -155,61 +121,34 @@ class NewsletterExtractor:
         collectées lors des tours précédents.
         """
 
-        extracted_data = (
-            extracted.model_dump(
-                mode="json"
-            )
-        )
+        extracted_data = extracted.model_dump(mode="json")
 
-        current_action = current.get(
-            "action"
-        )
+        current_action = current.get("action")
 
-        if (
-            extracted_data["action"]
-            == "unknown"
-            and current_action
-            in {
-                "subscribe",
-                "unsubscribe",
-            }
-        ):
-            extracted_data["action"] = (
-                current_action
-            )
+        if extracted_data["action"] == "unknown" and current_action in {
+            "subscribe",
+            "unsubscribe",
+        }:
+            extracted_data["action"] = current_action
 
-        if (
-            not extracted_data.get("email")
-            and current.get("email")
-        ):
-            extracted_data["email"] = (
-                current["email"]
-            )
+        if not extracted_data.get("email") and current.get("email"):
+            extracted_data["email"] = current["email"]
 
-        if (
-            extracted_data.get("language")
-            == "fr"
-            and current.get("language")
-            in {
-                "en",
-                "ar",
-                "darija",
-            }
-        ):
-            extracted_data["language"] = (
-                current["language"]
-            )
+        if extracted_data.get("language") == "fr" and current.get("language") in {
+            "en",
+            "ar",
+            "darija",
+        }:
+            extracted_data["language"] = current["language"]
 
         current_topics = current.get(
             "topics",
             [],
         )
 
-        extracted_topics = (
-            extracted_data.get(
-                "topics",
-                [],
-            )
+        extracted_topics = extracted_data.get(
+            "topics",
+            [],
         )
 
         # Les préférences mentionnées dans
@@ -223,11 +162,8 @@ class NewsletterExtractor:
             )
         )
 
-        return NewsletterExtraction(
-            **extracted_data
-        )
+        return NewsletterExtraction(**extracted_data)
 
 
-def create_newsletter_extractor(
-) -> NewsletterExtractor:
+def create_newsletter_extractor() -> NewsletterExtractor:
     return NewsletterExtractor()

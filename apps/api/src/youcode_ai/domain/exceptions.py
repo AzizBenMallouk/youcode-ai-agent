@@ -2,102 +2,71 @@ class DomainError(Exception):
     """Erreur métier générale."""
 
 
-class ConsentNotFoundError(
-    DomainError
-):
+class ConsentNotFoundError(DomainError):
     pass
 
 
-class ConsentAlreadyRevokedError(
-    DomainError
-):
-    pass
-
-class DuplicateActiveRequestError(
-    DomainError
-):
-    pass
-
-class ExternalServiceError(
-    DomainError
-):
+class ConsentAlreadyRevokedError(DomainError):
     pass
 
 
-class TestSessionNotFoundError(
-    DomainError
-):
+class DuplicateActiveRequestError(DomainError):
     pass
 
 
-class NoAvailableTestSessionError(
-    DomainError
-):
-    pass
-
-class VisitorRequestNotFoundError(
-    DomainError
-):
+class ExternalServiceError(DomainError):
     pass
 
 
-class InvalidRequestTypeError(
-    DomainError
-):
+class TestSessionNotFoundError(DomainError):
     pass
 
 
-class InvalidRequestStatusError(
-    DomainError
-):
+class NoAvailableTestSessionError(DomainError):
     pass
 
 
-class IncompleteRequestError(
-    DomainError
-):
+class VisitorRequestNotFoundError(DomainError):
+    pass
+
+
+class InvalidRequestTypeError(DomainError):
+    pass
+
+
+class InvalidRequestStatusError(DomainError):
+    pass
+
+
+class IncompleteRequestError(DomainError):
     pass
 
 
 # Email
-class EmailDeliveryError(
-    DomainError
-):
+class EmailDeliveryError(DomainError):
     pass
 
 
-class EmailProviderUnavailableError(
-    DomainError
-):
+class EmailProviderUnavailableError(DomainError):
     pass
 
 
 # Auth
-class AuthenticationError(
-    DomainError
-):
+class AuthenticationError(DomainError):
     pass
 
 
-class AuthorizationError(
-    DomainError
-):
+class AuthorizationError(DomainError):
     pass
 
 
-class AccountLockedError(
-    DomainError
-):
+class AccountLockedError(DomainError):
     pass
 
 
-class AccountDisabledError(
-    DomainError
-):
+class AccountDisabledError(DomainError):
     pass
 
 
-class DuplicateEmailError(
-    DomainError
-):
+class DuplicateEmailError(DomainError):
     pass

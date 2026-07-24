@@ -11,7 +11,6 @@ from youcode_ai.infrastructure.database.initialize import (
     initialize_database,
 )
 
-
 __all__ = [
     "Base",
     "SessionFactory",

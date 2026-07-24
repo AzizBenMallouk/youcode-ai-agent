@@ -1,11 +1,9 @@
-import logging
 from collections.abc import Sequence
 
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
-
 from youcode_ai.agents.guide.agent import (
     create_guide_agent,
 )
@@ -17,7 +15,6 @@ from youcode_ai.domain.enums.common import (
 )
 
 
-
 class GuideAgentService:
     def __init__(self) -> None:
         self.agent = create_guide_agent()
@@ -26,9 +23,7 @@ class GuideAgentService:
         self,
         *,
         message: str,
-        history: Sequence[
-            BaseMessage
-        ] | None = None,
+        history: Sequence[BaseMessage] | None = None,
     ) -> GuideResponse:
         """
         Exécute le Guide Agent.
@@ -38,15 +33,9 @@ class GuideAgentService:
         état en mémoire.
         """
 
-        messages: list[BaseMessage] = list(
-            history or []
-        )
+        messages: list[BaseMessage] = list(history or [])
 
-        messages.append(
-            HumanMessage(
-                content=message.strip()
-            )
-        )
+        messages.append(HumanMessage(content=message.strip()))
 
         try:
             result = self.agent.invoke(
@@ -55,9 +44,17 @@ class GuideAgentService:
                 }
             )
 
-            response = result.get(
-                "structured_response"
-            )
+            response = result.get("structured_response")
+
+            if response is None:
+                print("DEBUG: structured_response is None. Raw result:", result)
+            elif not isinstance(response, GuideResponse):
+                print(
+                    "DEBUG: structured_response is not GuideResponse. Type:",
+                    type(response),
+                    "Value:",
+                    response,
+                )
 
             if isinstance(
                 response,
@@ -65,10 +62,12 @@ class GuideAgentService:
             ):
                 return response
 
-
             return self._technical_error()
 
         except Exception:
+            import traceback
+
+            traceback.print_exc()
             return self._technical_error()
 
     @staticmethod
@@ -86,6 +85,5 @@ class GuideAgentService:
         )
 
 
-def create_guide_agent_service(
-) -> GuideAgentService:
+def create_guide_agent_service() -> GuideAgentService:
     return GuideAgentService()

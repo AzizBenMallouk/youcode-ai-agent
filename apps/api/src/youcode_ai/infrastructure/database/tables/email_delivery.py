@@ -2,18 +2,19 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     Integer,
     String,
     Text,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-
 from youcode_ai.domain.enums import (
     EmailDeliveryStatus,
     EmailType,
@@ -37,9 +38,7 @@ class EmailDeliveryTable(Base):
         default=generate_uuid,
     )
 
-    subscription_id: Mapped[
-        str | None
-    ] = mapped_column(
+    subscription_id: Mapped[str | None] = mapped_column(
         ForeignKey(
             "newsletter_subscriptions.id",
             ondelete="SET NULL",
@@ -48,17 +47,13 @@ class EmailDeliveryTable(Base):
         index=True,
     )
 
-    recipient_email: Mapped[
-        str
-    ] = mapped_column(
+    recipient_email: Mapped[str] = mapped_column(
         String(320),
         nullable=False,
         index=True,
     )
 
-    email_type: Mapped[
-        EmailType
-    ] = mapped_column(
+    email_type: Mapped[EmailType] = mapped_column(
         SqlEnum(
             EmailType,
             values_callable=enum_values,
@@ -74,9 +69,7 @@ class EmailDeliveryTable(Base):
         nullable=False,
     )
 
-    status: Mapped[
-        EmailDeliveryStatus
-    ] = mapped_column(
+    status: Mapped[EmailDeliveryStatus] = mapped_column(
         SqlEnum(
             EmailDeliveryStatus,
             values_callable=enum_values,
@@ -84,52 +77,38 @@ class EmailDeliveryTable(Base):
             length=30,
         ),
         nullable=False,
-        default=(
-            EmailDeliveryStatus.PENDING
-        ),
+        default=(EmailDeliveryStatus.PENDING),
         index=True,
     )
 
-    provider_message_id: Mapped[
-        str | None
-    ] = mapped_column(
+    provider_message_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
         index=True,
     )
 
-    error_message: Mapped[
-        str | None
-    ] = mapped_column(
+    error_message: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    created_at: Mapped[
-        datetime
-    ] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=utc_now,
     )
 
-    sent_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    template_name: Mapped[
-        str | None
-    ] = mapped_column(
+    template_name: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
     )
 
-    payload_json: Mapped[
-        str | None
-    ] = mapped_column(
+    payload_json: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -140,15 +119,11 @@ class EmailDeliveryTable(Base):
         default=0,
     )
 
-    scheduled_at: Mapped[
-        datetime | None
-    ] = mapped_column(
+    scheduled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    subscription: Mapped[
-        "NewsletterSubscriptionTable | None"
-    ] = relationship(
+    subscription: Mapped["NewsletterSubscriptionTable | None"] = relationship(
         back_populates="email_deliveries",
     )

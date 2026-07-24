@@ -1,19 +1,21 @@
+from datetime import datetime
+
 from sqlalchemy import (
-    String,
     DateTime,
     ForeignKey,
+    String,
 )
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship,
 )
-from datetime import datetime
 from youcode_ai.infrastructure.database.base import Base
 from youcode_ai.infrastructure.database.tables.common import (
     generate_uuid,
     utc_now,
 )
+
 
 class RefreshTokenTable(Base):
     __tablename__ = "refresh_tokens"

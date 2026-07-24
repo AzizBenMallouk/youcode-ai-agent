@@ -1,5 +1,4 @@
 import json
-
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
@@ -7,7 +6,6 @@ from typing import Any
 from langchain_core.documents import (
     Document,
 )
-
 from youcode_ai.core.config import (
     PROJECT_ROOT,
     settings,
@@ -19,15 +17,10 @@ class ParentDocumentStore:
         self,
         file_path: str | Path,
     ) -> None:
-        self.file_path = Path(
-            file_path
-        )
+        self.file_path = Path(file_path)
 
         if not self.file_path.is_absolute():
-            self.file_path = (
-                PROJECT_ROOT
-                / self.file_path
-            ).resolve()
+            self.file_path = (PROJECT_ROOT / self.file_path).resolve()
 
         self.file_path.parent.mkdir(
             parents=True,
@@ -50,44 +43,20 @@ class ParentDocumentStore:
         ] = {}
 
         for document in documents:
-            parent_id = (
-                document.metadata.get(
-                    "parent_id"
-                )
-            )
+            parent_id = document.metadata.get("parent_id")
 
             if not parent_id:
-                raise ValueError(
-                    "Parent document has no "
-                    "parent_id."
-                )
+                raise ValueError("Parent document has no parent_id.")
 
-            if (
-                parent_id
-                in serialized_documents
-            ):
-                raise ValueError(
-                    "Duplicate parent ID: "
-                    f"{parent_id}"
-                )
+            if parent_id in serialized_documents:
+                raise ValueError(f"Duplicate parent ID: {parent_id}")
 
-            serialized_documents[
-                parent_id
-            ] = {
-                "page_content": (
-                    document.page_content
-                ),
-                "metadata": (
-                    document.metadata
-                ),
+            serialized_documents[parent_id] = {
+                "page_content": (document.page_content),
+                "metadata": (document.metadata),
             }
 
-        temporary_path = (
-            self.file_path.with_name(
-                self.file_path.name
-                + ".tmp"
-            )
-        )
+        temporary_path = self.file_path.with_name(self.file_path.name + ".tmp")
 
         temporary_path.write_text(
             json.dumps(
@@ -101,30 +70,20 @@ class ParentDocumentStore:
         # Remplacement atomique :
         # l'ancien fichier reste valide tant que
         # le nouveau n'est pas complètement écrit.
-        temporary_path.replace(
-            self.file_path
-        )
+        temporary_path.replace(self.file_path)
 
     def get(
         self,
         parent_id: str,
     ) -> Document | None:
-        stored_documents = (
-            self._load_data()
-        )
+        stored_documents = self._load_data()
 
-        stored_document = (
-            stored_documents.get(
-                parent_id
-            )
-        )
+        stored_document = stored_documents.get(parent_id)
 
         if stored_document is None:
             return None
 
-        return self._deserialize_document(
-            stored_document
-        )
+        return self._deserialize_document(stored_document)
 
     def get_many(
         self,
@@ -135,9 +94,7 @@ class ParentDocumentStore:
         ordre et en supprimant les doublons.
         """
 
-        stored_documents = (
-            self._load_data()
-        )
+        stored_documents = self._load_data()
 
         documents: list[Document] = []
         used_parent_ids: set[str] = set()
@@ -146,31 +103,19 @@ class ParentDocumentStore:
             if parent_id in used_parent_ids:
                 continue
 
-            stored_document = (
-                stored_documents.get(
-                    parent_id
-                )
-            )
+            stored_document = stored_documents.get(parent_id)
 
             if stored_document is None:
                 continue
 
-            documents.append(
-                self._deserialize_document(
-                    stored_document
-                )
-            )
+            documents.append(self._deserialize_document(stored_document))
 
-            used_parent_ids.add(
-                parent_id
-            )
+            used_parent_ids.add(parent_id)
 
         return documents
 
     def count(self) -> int:
-        return len(
-            self._load_data()
-        )
+        return len(self._load_data())
 
     def exists(self) -> bool:
         return self.file_path.exists()
@@ -181,9 +126,7 @@ class ParentDocumentStore:
         if not self.file_path.exists():
             return {}
 
-        content = self.file_path.read_text(
-            encoding="utf-8"
-        )
+        content = self.file_path.read_text(encoding="utf-8")
 
         if not content.strip():
             return {}
@@ -192,15 +135,11 @@ class ParentDocumentStore:
             data = json.loads(content)
         except JSONDecodeError as error:
             raise RuntimeError(
-                "Parent document store "
-                "contains invalid JSON."
+                "Parent document store contains invalid JSON."
             ) from error
 
         if not isinstance(data, dict):
-            raise RuntimeError(
-                "Parent document store must "
-                "contain a JSON object."
-            )
+            raise RuntimeError("Parent document store must contain a JSON object.")
 
         return data
 
@@ -208,33 +147,21 @@ class ParentDocumentStore:
     def _deserialize_document(
         stored_document: dict[str, Any],
     ) -> Document:
-        page_content = (
-            stored_document.get(
-                "page_content"
-            )
-        )
+        page_content = stored_document.get("page_content")
 
-        metadata = stored_document.get(
-            "metadata"
-        )
+        metadata = stored_document.get("metadata")
 
         if not isinstance(
             page_content,
             str,
         ):
-            raise RuntimeError(
-                "Stored parent document has "
-                "invalid page content."
-            )
+            raise RuntimeError("Stored parent document has invalid page content.")
 
         if not isinstance(
             metadata,
             dict,
         ):
-            raise RuntimeError(
-                "Stored parent document has "
-                "invalid metadata."
-            )
+            raise RuntimeError("Stored parent document has invalid metadata.")
 
         return Document(
             page_content=page_content,
@@ -242,8 +169,5 @@ class ParentDocumentStore:
         )
 
 
-def create_parent_document_store(
-) -> ParentDocumentStore:
-    return ParentDocumentStore(
-        settings.parent_store_path
-    )
+def create_parent_document_store() -> ParentDocumentStore:
+    return ParentDocumentStore(settings.parent_store_path)

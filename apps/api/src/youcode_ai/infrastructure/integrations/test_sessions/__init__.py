@@ -8,7 +8,6 @@ from youcode_ai.infrastructure.integrations.test_sessions.schemas import (
     TestType,
 )
 
-
 __all__ = [
     "TestSessionApiClient",
     "TestSessionData",

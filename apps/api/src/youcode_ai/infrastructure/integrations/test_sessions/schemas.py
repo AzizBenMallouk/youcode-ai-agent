@@ -25,23 +25,15 @@ class TestSessionData(BaseModel):
     test_type: TestType
     start_at: datetime
 
-    capacity: int = Field(
-        ge=0
-    )
+    capacity: int = Field(ge=0)
 
-    registered_candidates: int = Field(
-        ge=0
-    )
+    registered_candidates: int = Field(ge=0)
 
     status: TestSessionStatus
 
-    available_capacity: int = Field(
-        ge=0
-    )
+    available_capacity: int = Field(ge=0)
 
 
 class TestSessionListData(BaseModel):
     items: list[TestSessionData]
-    total: int = Field(
-        ge=0
-    )
+    total: int = Field(ge=0)

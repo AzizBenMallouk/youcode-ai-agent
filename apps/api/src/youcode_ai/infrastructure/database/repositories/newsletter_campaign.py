@@ -1,6 +1,5 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-
 from youcode_ai.domain.enums.campaign import CampaignStatus
 from youcode_ai.infrastructure.database.repositories.base import BaseRepository
 from youcode_ai.infrastructure.database.tables import NewsletterCampaignTable
@@ -33,7 +32,7 @@ class NewsletterCampaignRepository(BaseRepository[NewsletterCampaignTable]):
             )
 
         statement = statement.order_by(NewsletterCampaignTable.created_at.desc())
-        
+
         offset = (page - 1) * page_size
         statement = statement.offset(offset).limit(page_size)
 

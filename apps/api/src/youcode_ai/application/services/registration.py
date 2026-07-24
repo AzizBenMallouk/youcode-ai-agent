@@ -8,11 +8,9 @@ from typing import Literal
 
 import httpx
 from pydantic import ValidationError
-
 from youcode_ai.infrastructure.integrations.registration_api.client import (
     RegistrationApiClient,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -60,17 +58,9 @@ class RegistrationService:
         program: str = "full_program",
         campus: str | None = None,
     ) -> RegistrationResult:
-        normalized_program = (
-            self._normalize_program(
-                program
-            )
-        )
+        normalized_program = self._normalize_program(program)
 
-        normalized_campus = (
-            self._normalize_campus(
-                campus
-            )
-        )
+        normalized_campus = self._normalize_campus(campus)
 
         try:
             data = self.client.get_status(
@@ -82,24 +72,14 @@ class RegistrationService:
                 program=data.program,
                 campus=data.campus,
                 status=data.status,
-                opening_date=(
-                    data.opening_date
-                ),
-                closing_date=(
-                    data.closing_date
-                ),
-                registration_url=(
-                    data.registration_url
-                ),
-                available_places=(
-                    data.available_places
-                ),
+                opening_date=(data.opening_date),
+                closing_date=(data.closing_date),
+                registration_url=(data.registration_url),
+                available_places=(data.available_places),
                 message=data.message,
                 updated_at=data.updated_at,
                 service_available=True,
-                information_available=(
-                    data.status != "unknown"
-                ),
+                information_available=(data.status != "unknown"),
             )
 
         except (
@@ -107,19 +87,13 @@ class RegistrationService:
             httpx.HTTPStatusError,
             ValidationError,
         ):
-            logger.exception(
-                "Registration API request "
-                "failed."
-            )
+            logger.exception("Registration API request failed.")
 
             return RegistrationResult(
                 program=normalized_program,
                 campus=normalized_campus,
                 status="unavailable",
-                message=(
-                    "Registration service is "
-                    "temporarily unavailable."
-                ),
+                message=("Registration service is temporarily unavailable."),
                 service_available=False,
                 information_available=False,
             )
@@ -128,17 +102,13 @@ class RegistrationService:
     def _normalize_program(
         program: str,
     ) -> str:
-        normalized = (
-            program.strip().lower()
-        )
+        normalized = program.strip().lower()
 
         aliases = {
             "full_program": "full_program",
             "full program": "full_program",
             "formation": "full_program",
-            "formation complète": (
-                "full_program"
-            ),
+            "formation complète": ("full_program"),
             "bootcamp": "bootcamp",
             "bootcamps": "bootcamp",
         }
@@ -146,10 +116,7 @@ class RegistrationService:
         result = aliases.get(normalized)
 
         if result is None:
-            raise ValueError(
-                f"Unsupported program: "
-                f"{program}"
-            )
+            raise ValueError(f"Unsupported program: {program}")
 
         return result
 
@@ -160,9 +127,7 @@ class RegistrationService:
         if campus is None:
             return None
 
-        normalized = (
-            campus.strip().lower()
-        )
+        normalized = campus.strip().lower()
 
         aliases = {
             "safi": "Safi",
@@ -173,9 +138,6 @@ class RegistrationService:
         result = aliases.get(normalized)
 
         if result is None:
-            raise ValueError(
-                f"Unsupported campus: "
-                f"{campus}"
-            )
+            raise ValueError(f"Unsupported campus: {campus}")
 
         return result

@@ -1,12 +1,11 @@
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import (
     CORSMiddleware,
 )
-
 from youcode_ai.api.router import (
     api_router,
 )
@@ -17,21 +16,16 @@ from youcode_ai.infrastructure.database import (
     initialize_database,
 )
 
-
 logging.basicConfig(
-    level=(
-        logging.DEBUG
-        if settings.app_debug
-        else logging.INFO
-    ),
-    format=(
-        "%(asctime)s | %(levelname)s | "
-        "%(name)s | %(message)s"
-    ),
+    level=(logging.DEBUG if settings.app_debug else logging.INFO),
+    format=("%(asctime)s | %(levelname)s | %(name)s | %(message)s"),
 )
 
 
 logger = logging.getLogger(__name__)
+
+
+from youcode_ai.infrastructure.database.mcp_client import mcp_sheets_client
 
 
 @asynccontextmanager
@@ -50,7 +44,13 @@ async def lifespan(
 
     initialize_database()
 
+    # Démarrage du client MCP Google Sheets
+    await mcp_sheets_client.connect()
+
     yield
+
+    # Arrêt du client MCP
+    await mcp_sheets_client.disconnect()
 
     logger.info(
         "Stopping %s.",
@@ -61,8 +61,7 @@ async def lifespan(
 app = FastAPI(
     title=settings.app_name,
     description=(
-        "API multi-agent de YouCode pour les "
-        "visiteurs, candidats et administrateurs."
+        "API multi-agent de YouCode pour les visiteurs, candidats et administrateurs."
     ),
     version="0.1.0",
     debug=settings.app_debug,
@@ -92,32 +91,33 @@ app.add_middleware(
 )
 
 
-app.include_router(
-    api_router
-)
+app.include_router(api_router)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from youcode_ai.domain.exceptions import (
-    DomainError,
+    AccountDisabledError,
+    AccountLockedError,
     AuthenticationError,
     AuthorizationError,
-    AccountLockedError,
-    AccountDisabledError,
+    DomainError,
     DuplicateEmailError,
 )
+
 
 @app.exception_handler(DomainError)
 async def domain_error_handler(request: Request, exc: DomainError):
     status_code = 400
-    
+
     if isinstance(exc, AuthenticationError):
         status_code = 401
-    elif isinstance(exc, (AuthorizationError, AccountDisabledError, AccountLockedError)):
+    elif isinstance(
+        exc, (AuthorizationError, AccountDisabledError, AccountLockedError)
+    ):
         status_code = 403
     elif isinstance(exc, DuplicateEmailError):
         status_code = 409
-        
+
     return JSONResponse(
         status_code=status_code,
         content={"detail": str(exc)},

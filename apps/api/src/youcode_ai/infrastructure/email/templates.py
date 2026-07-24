@@ -105,10 +105,7 @@ class EmailTemplateRenderer:
                 "Se désinscrire</a></p>"
                 "</body></html>"
             ),
-            (
-                "{content}\n\n"
-                "Se désinscrire : {unsubscribe_url}"
-            ),
+            ("{content}\n\nSe désinscrire : {unsubscribe_url}"),
         ),
     }
 
@@ -121,33 +118,21 @@ class EmailTemplateRenderer:
 
         if template_name not in self._TEMPLATES:
             logger.warning(
-                "Template '%s' inconnue, "
-                "utilisation du fallback.",
+                "Template '%s' inconnue, utilisation du fallback.",
                 template_name,
             )
             return (
-                payload.get(
-                    "subject", "YouCode"
-                ),
+                payload.get("subject", "YouCode"),
                 payload.get("body", ""),
                 payload.get("body_text", ""),
             )
 
-        subject_tpl, html_tpl, text_tpl = (
-            self._TEMPLATES[template_name]
-        )
+        subject_tpl, html_tpl, text_tpl = self._TEMPLATES[template_name]
 
-        safe_payload = {
-            k: html.escape(str(v))
-            for k, v in payload.items()
-        }
+        safe_payload = {k: html.escape(str(v)) for k, v in payload.items()}
 
         return (
-            subject_tpl.format_map(
-                payload
-            ),
-            html_tpl.format_map(
-                safe_payload
-            ),
+            subject_tpl.format_map(payload),
+            html_tpl.format_map(safe_payload),
             text_tpl.format_map(payload),
         )

@@ -1,7 +1,7 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from youcode_ai.infrastructure.database.repositories.base import BaseRepository
 from youcode_ai.infrastructure.database.tables.user import UserTable
-from youcode_ai.domain.enums.auth import UserRole
+
 
 class UserRepository(BaseRepository[UserTable]):
     def __init__(self, *, session):
@@ -12,7 +12,12 @@ class UserRepository(BaseRepository[UserTable]):
         return self.session.execute(stmt).scalar_one_or_none()
 
     def list_filtered(
-        self, *, page: int, page_size: int, role: str | None = None, is_active: bool | None = None
+        self,
+        *,
+        page: int,
+        page_size: int,
+        role: str | None = None,
+        is_active: bool | None = None,
     ) -> tuple[list[UserTable], int]:
         stmt = select(UserTable)
         count_stmt = select(func.count(UserTable.id))
@@ -20,7 +25,7 @@ class UserRepository(BaseRepository[UserTable]):
         if role:
             stmt = stmt.where(UserTable.role == role)
             count_stmt = count_stmt.where(UserTable.role == role)
-            
+
         if is_active is not None:
             stmt = stmt.where(UserTable.is_active == is_active)
             count_stmt = count_stmt.where(UserTable.is_active == is_active)

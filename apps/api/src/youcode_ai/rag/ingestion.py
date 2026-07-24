@@ -41,94 +41,53 @@ class IngestionResult:
 
 class DocumentIngestionService:
     def run(self) -> IngestionResult:
-        source_documents = (
-            load_text_documents()
-        )
+        source_documents = load_text_documents()
 
         if not source_documents:
-            raise ValueError(
-                "No source documents were "
-                "found."
-            )
+            raise ValueError("No source documents were found.")
 
-        split_result = (
-            split_parent_child_documents(
-                source_documents
-            )
-        )
+        split_result = split_parent_child_documents(source_documents)
 
         if not split_result.parents:
-            raise ValueError(
-                "No parent chunks were "
-                "generated."
-            )
+            raise ValueError("No parent chunks were generated.")
 
         if not split_result.children:
-            raise ValueError(
-                "No child chunks were "
-                "generated."
-            )
+            raise ValueError("No child chunks were generated.")
 
-        embeddings = (
-            create_embedding_model()
-        )
+        embeddings = create_embedding_model()
 
         client = get_qdrant_client()
 
-        vector_size = (
-            recreate_document_collection(
-                client=client,
-                embeddings=embeddings,
-            )
+        vector_size = recreate_document_collection(
+            client=client,
+            embeddings=embeddings,
         )
 
-        vector_store = (
-            create_document_vector_store(
-                client=client,
-                embeddings=embeddings,
-            )
+        vector_store = create_document_vector_store(
+            client=client,
+            embeddings=embeddings,
+            force_recreate=True,
         )
 
-        indexed_children = (
-            self._index_children(
-                vector_store=vector_store,
-                children=(
-                    split_result.children
-                ),
-            )
+        indexed_children = self._index_children(
+            vector_store=vector_store,
+            children=(split_result.children),
         )
 
         # Les parents sont remplacés uniquement
         # après la réussite de l'indexation.
-        parent_store = (
-            create_parent_document_store()
-        )
+        parent_store = create_parent_document_store()
 
-        parent_store.replace_all(
-            split_result.parents
-        )
+        parent_store.replace_all(split_result.parents)
 
         return IngestionResult(
-            source_documents=len(
-                source_documents
-            ),
-            parent_chunks=len(
-                split_result.parents
-            ),
-            child_chunks=len(
-                split_result.children
-            ),
-            indexed_children=(
-                indexed_children
-            ),
+            source_documents=len(source_documents),
+            parent_chunks=len(split_result.parents),
+            child_chunks=len(split_result.children),
+            indexed_children=(indexed_children),
             vector_size=vector_size,
-            collection_name=(
-                settings
-                .qdrant_documents_collection
-            ),
-            embedding_provider=(
-                settings.embedding_provider
-            ),
+            collection_name=(settings.qdrant_documents_collection),
+            embedding_provider=(settings.embedding_provider),
         )
 
     def _index_children(
@@ -137,10 +96,7 @@ class DocumentIngestionService:
         vector_store,
         children,
     ) -> int:
-        batch_size = (
-            settings
-            .rag_ingestion_batch_size
-        )
+        batch_size = settings.rag_ingestion_batch_size
 
         indexed_count = 0
 
@@ -149,18 +105,10 @@ class DocumentIngestionService:
             len(children),
             batch_size,
         ):
-            batch = children[
-                start_index:
-                start_index + batch_size
-            ]
+            batch = children[start_index : start_index + batch_size]
 
             point_ids = [
-                self._create_point_id(
-                    child.metadata[
-                        "child_id"
-                    ]
-                )
-                for child in batch
+                self._create_point_id(child.metadata["child_id"]) for child in batch
             ]
 
             vector_store.add_documents(

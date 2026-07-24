@@ -1,7 +1,9 @@
 import secrets
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from datetime import datetime, timezone, timedelta
+
 import jwt
+
 
 def create_access_token(
     *,
@@ -22,6 +24,7 @@ def create_access_token(
     }
     return jwt.encode(payload, secret_key, algorithm="HS256")
 
+
 def decode_access_token(
     token: str,
     *,
@@ -34,8 +37,10 @@ def decode_access_token(
         options={"require": ["sub", "email", "role", "exp"]},
     )
 
+
 def generate_refresh_token() -> str:
     return secrets.token_urlsafe(32)
+
 
 def hash_token(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()

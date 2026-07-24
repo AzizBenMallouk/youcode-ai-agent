@@ -1,5 +1,10 @@
 import json
+import os
 from uuid import uuid4
+
+os.environ["NO_PROXY"] = "localhost,127.0.0.1,::1"
+os.environ["CHAT_PROVIDER"] = "gemini"
+os.environ["EMBEDDING_PROVIDER"] = "gemini"
 
 from youcode_ai.orchestration.service import (
     YouCodeOrchestrationService,

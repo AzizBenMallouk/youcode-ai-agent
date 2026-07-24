@@ -3,7 +3,6 @@ from sqlalchemy.orm import (
     Session,
     selectinload,
 )
-
 from youcode_ai.domain.enums import (
     KnowledgeGapStatus,
 )
@@ -15,9 +14,7 @@ from youcode_ai.infrastructure.database.tables import (
 )
 
 
-class KnowledgeGapRepository(
-    BaseRepository[KnowledgeGapTable]
-):
+class KnowledgeGapRepository(BaseRepository[KnowledgeGapTable]):
     def __init__(
         self,
         *,
@@ -35,24 +32,13 @@ class KnowledgeGapRepository(
         statement = (
             select(KnowledgeGapTable)
             .options(
-                selectinload(
-                    KnowledgeGapTable
-                    .questions
-                ),
-                selectinload(
-                    KnowledgeGapTable
-                    .answers
-                ),
+                selectinload(KnowledgeGapTable.questions),
+                selectinload(KnowledgeGapTable.answers),
             )
-            .where(
-                KnowledgeGapTable.id
-                == gap_id
-            )
+            .where(KnowledgeGapTable.id == gap_id)
         )
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
 
     def list_by_status(
         self,
@@ -63,39 +49,23 @@ class KnowledgeGapRepository(
     ) -> list[KnowledgeGapTable]:
         statement = (
             select(KnowledgeGapTable)
-            .where(
-                KnowledgeGapTable.status
-                == status
-            )
+            .where(KnowledgeGapTable.status == status)
             .order_by(
-                KnowledgeGapTable
-                .occurrence_count
-                .desc(),
-                KnowledgeGapTable
-                .created_at
-                .asc(),
+                KnowledgeGapTable.occurrence_count.desc(),
+                KnowledgeGapTable.created_at.asc(),
             )
             .offset(offset)
             .limit(limit)
         )
 
-        return list(
-            self.session.scalars(
-                statement
-            ).all()
-        )
+        return list(self.session.scalars(statement).all())
 
     def find_by_vector_point_id(
         self,
         vector_point_id: str,
     ) -> KnowledgeGapTable | None:
-        statement = select(
-            KnowledgeGapTable
-        ).where(
-            KnowledgeGapTable.vector_point_id
-            == vector_point_id
+        statement = select(KnowledgeGapTable).where(
+            KnowledgeGapTable.vector_point_id == vector_point_id
         )
 
-        return self.session.scalar(
-            statement
-        )
+        return self.session.scalar(statement)
