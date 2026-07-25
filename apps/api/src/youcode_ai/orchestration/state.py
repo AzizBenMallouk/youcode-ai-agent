@@ -34,6 +34,9 @@ class SupportDraft(
     ]
 
     email: str
+    phone_number: str
+    full_name: str
+    cin: str
     campus: str
 
     # Dates au format ISO : YYYY-MM-DD.
@@ -68,6 +71,9 @@ class NewsletterDraft(
     ]
 
     email: str
+    phone_number: str
+    full_name: str
+    cin: str
 
     topics: list[
         Literal[

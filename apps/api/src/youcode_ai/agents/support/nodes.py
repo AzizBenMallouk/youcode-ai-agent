@@ -42,6 +42,9 @@ EMAIL_ADAPTER = TypeAdapter(EmailStr)
 
 
 QUESTION_BY_FIELD = {
+    "phone_number": "Quel est votre numéro de téléphone ?",
+    "full_name": "Quel est votre nom complet ?",
+    "cin": "Quel est votre numéro de CIN (Carte d'Identité Nationale) ?",
     "request_type": ("Pouvez-vous préciser le problème que vous rencontrez ?"),
     "email": ("Quelle adresse e-mail avez-vous utilisée pour votre candidature ?"),
     "campus": (
@@ -93,6 +96,11 @@ class SupportNodes:
             **current_draft,
             **extracted_values,
         }
+
+        # Auto-extract phone number from session_id if it is a WhatsApp JID
+        session_id_str = state.get("session_id", "")
+        if "@s.whatsapp.net" in session_id_str:
+            updated_draft["phone_number"] = session_id_str.split("@")[0]
 
         ambiguities = list(
             updated_draft.get(
@@ -272,6 +280,9 @@ class SupportNodes:
                 description=draft["description"],
                 scheduled_test_date=(draft.get("scheduled_test_date")),
                 requested_test_date=(draft.get("requested_test_date")),
+                phone_number=draft.get("phone_number"),
+                full_name=draft.get("full_name"),
+                cin=draft.get("cin"),
             )
 
             with database_session() as session:
@@ -464,6 +475,15 @@ class SupportNodes:
         draft: SupportDraft,
     ) -> list[str]:
         missing_fields: list[str] = []
+
+        if not draft.get("phone_number"):
+            missing_fields.append("phone_number")
+
+        if not draft.get("full_name"):
+            missing_fields.append("full_name")
+
+        if not draft.get("cin"):
+            missing_fields.append("cin")
 
         request_type = draft.get("request_type")
 

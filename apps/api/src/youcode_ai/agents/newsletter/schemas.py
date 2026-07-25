@@ -44,6 +44,18 @@ class NewsletterExtraction(BaseModel):
         max_length=320,
     )
 
+    full_name: str | None = Field(
+        default=None,
+        description="Nom complet du visiteur.",
+        max_length=150,
+    )
+
+    cin: str | None = Field(
+        default=None,
+        description="Numéro de CIN du visiteur.",
+        max_length=20,
+    )
+
     topics: list[NewsletterTopic] = Field(
         default_factory=list,
     )

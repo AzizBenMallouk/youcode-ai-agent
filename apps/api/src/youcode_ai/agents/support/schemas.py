@@ -46,6 +46,16 @@ class SupportInformationExtraction(BaseModel):
         description=("Adresse email explicitement présente dans le message."),
     )
 
+    full_name: str | None = Field(
+        default=None,
+        description=("Nom complet explicitement présent dans le message."),
+    )
+
+    cin: str | None = Field(
+        default=None,
+        description=("Numéro de CIN / Carte d'Identité explicitement présent dans le message."),
+    )
+
     campus: str | None = Field(
         default=None,
         description=(

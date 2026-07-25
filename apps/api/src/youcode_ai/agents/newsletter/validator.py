@@ -13,6 +13,8 @@ MissingNewsletterField = Literal[
     "action",
     "email",
     "topics",
+    "full_name",
+    "cin",
 ]
 
 
@@ -71,8 +73,15 @@ def get_missing_newsletter_fields(
 
     # Les préférences sont obligatoires
     # uniquement pour une inscription.
-    if action == "subscribe" and not topics:
-        missing.append("topics")
+    if action == "subscribe":
+        if not topics:
+            missing.append("topics")
+            
+        if not draft.get("full_name"):
+            missing.append("full_name")
+            
+        if not draft.get("cin"):
+            missing.append("cin")
 
     return missing
 
@@ -120,6 +129,18 @@ QUESTION_BY_FIELD: dict[
             "التسجيلات، البوتكامبات، الأحداث ولا "
             "أخبار YouCode؟"
         ),
+    },
+    "full_name": {
+        "fr": ("Quel est votre nom complet ?"),
+        "en": ("What is your full name?"),
+        "ar": ("ما هو اسمك الكامل؟"),
+        "darija": ("شنو هو الاسم الكامل ديالك؟"),
+    },
+    "cin": {
+        "fr": ("Quel est votre numéro de CIN (Carte d'Identité Nationale) ?"),
+        "en": ("What is your CIN (National Identity Card) number?"),
+        "ar": ("ما هو رقم بطاقتك الوطنية (CIN)؟"),
+        "darija": ("شنو هو رقم لاكارت ناسيونال ديالك (CIN)؟"),
     },
 }
 

@@ -62,6 +62,11 @@ class NewsletterNodes:
                 exclude_none=True,
             )
 
+            # Auto-extract phone number from session_id if it is a WhatsApp JID
+            session_id_str = state.get("session_id", "")
+            if "@s.whatsapp.net" in session_id_str:
+                draft["phone_number"] = session_id_str.split("@")[0]
+
             normalized_email = normalize_email(draft.get("email"))
 
             if normalized_email:
@@ -224,6 +229,9 @@ class NewsletterNodes:
                             "newsletter_consent_confirmed",
                             False,
                         ),
+                        phone_number=draft.get("phone_number"),
+                        full_name=draft.get("full_name"),
+                        cin=draft.get("cin"),
                     )
 
                     answer = self._subscribed_answer(language)

@@ -42,6 +42,12 @@ class SupportRequestCreate(BaseModel):
 
     requested_test_date: date | None = None
 
+    phone_number: str | None = Field(default=None, max_length=20)
+
+    full_name: str | None = Field(default=None, max_length=150)
+
+    cin: str | None = Field(default=None, max_length=20)
+
     @model_validator(mode="after")
     def validate_rescheduling(
         self,
@@ -83,6 +89,9 @@ class SupportRequestResult(BaseModel):
     campus: str | None
     scheduled_test_date: date | None
     requested_test_date: date | None
+    phone_number: str | None
+    full_name: str | None
+    cin: str | None
     consent_reference: str
     created_at: datetime
 

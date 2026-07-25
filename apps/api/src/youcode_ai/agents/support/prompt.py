@@ -13,6 +13,8 @@ If impossible to determine, return null.
 # EXTRACTION RULES
 - Dominant language (fr, en, ar, darija).
 - Email: Extract only if explicitly present. Do not deduce.
+- Full Name: Extract only if explicitly present. Do not deduce.
+- CIN: Extract the CIN identifier only if explicitly present.
 - Campus: Normalize (Safi, Youssoufia, Nador). Keep as is if other.
 - Dates (YYYY-MM-DD): 
   - `scheduled_test_date` = current test date.
@@ -52,4 +54,23 @@ Decisions:
 - `unclear`: ambiguous or off-topic response.
 
 Do not invent any decision.
+"""
+
+SUPPORT_EXTRACTION_HUMAN_TEMPLATE = """
+Current Date: {current_date}
+
+Draft:
+{current_draft}
+
+Visitor Message: {message}
+"""
+
+CONSENT_EXTRACTION_HUMAN_TEMPLATE = """
+Visitor Message: {message}
+"""
+
+SESSION_PROPOSAL_HUMAN_TEMPLATE = """
+Proposed Date: {proposed_test_date}
+
+Visitor Message: {message}
 """

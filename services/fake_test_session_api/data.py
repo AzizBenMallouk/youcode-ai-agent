@@ -3,7 +3,7 @@ from datetime import (
     timezone,
 )
 
-from .schemas import (
+from schemas import (
     TestSession,
     TestSessionStatus,
     TestType,

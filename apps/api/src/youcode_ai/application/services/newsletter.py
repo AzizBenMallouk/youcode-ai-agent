@@ -51,6 +51,9 @@ class NewsletterService:
         language: str,
         topics: list[str],
         consent_confirmed: bool,
+        phone_number: str | None = None,
+        full_name: str | None = None,
+        cin: str | None = None,
         campus: str | None = None,
     ) -> NewsletterOperationResult:
         """
@@ -83,6 +86,9 @@ class NewsletterService:
                 id=str(uuid4()),
                 reference=(self._create_reference()),
                 email=normalized_email,
+                phone_number=phone_number,
+                full_name=full_name,
+                cin=cin,
                 language=language,
                 campus=campus,
                 status="active",
@@ -103,6 +109,12 @@ class NewsletterService:
             )
             if campus is not None:
                 subscription.campus = campus
+            if phone_number is not None:
+                subscription.phone_number = phone_number
+            if full_name is not None:
+                subscription.full_name = full_name
+            if cin is not None:
+                subscription.cin = cin
 
         self.repository.replace_preferences(
             subscription_id=subscription.id,

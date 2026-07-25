@@ -68,8 +68,11 @@ class Settings(BaseSettings):
     # Qdrant
     qdrant_url: str
     qdrant_api_key: str | None = None
-    qdrant_documents_collection: str
-    qdrant_knowledge_gaps_collection: str
+    qdrant_documents_collection: str = Field(default="youcode_documents_gemini")
+    qdrant_knowledge_gaps_collection: str = Field(
+        default="youcode_knowledge_gaps_gemini"
+    )
+    qdrant_guardrails_collection: str = Field(default="youcode_guardrails_gemini")
     rag_ingestion_batch_size: int = Field(
         ge=1,
         le=500,
@@ -199,6 +202,21 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     settings = Settings()
+
+    if not settings.documents_path.is_absolute():
+        settings.documents_path = PROJECT_ROOT / settings.documents_path
+
+    if not settings.parent_store_path.is_absolute():
+        settings.parent_store_path = PROJECT_ROOT / settings.parent_store_path
+
+    if not Path(settings.langgraph_checkpoint_path).is_absolute():
+        settings.langgraph_checkpoint_path = str(PROJECT_ROOT / settings.langgraph_checkpoint_path)
+
+    if settings.database_url.startswith("sqlite:///"):
+        db_path = settings.database_url[10:]
+        if not Path(db_path).is_absolute():
+            abs_db_path = PROJECT_ROOT / db_path
+            settings.database_url = f"sqlite:///{abs_db_path}"
 
     settings.documents_path.mkdir(
         parents=True,

@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("GoogleSheetsMCP")
 
 # Identifiants
-CREDENTIALS_FILE = os.environ.get(
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    "/home/bucketlister/Desktop/iayyyyy/youcode-ai-agent/youcode-383711-be6f512e7af2.json",
-)
+CREDENTIALS_FILE = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+
+if not CREDENTIALS_FILE:
+    raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set")
 
 
 def get_client() -> gspread.Client:

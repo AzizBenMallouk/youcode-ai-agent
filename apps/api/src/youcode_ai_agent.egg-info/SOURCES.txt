@@ -1,6 +1,12 @@
 README.md
 pyproject.toml
 apps/api/src/youcode_ai/main.py
+apps/api/src/youcode_ai/agents/guardrails/__init__.py
+apps/api/src/youcode_ai/agents/guardrails/agent.py
+apps/api/src/youcode_ai/agents/guardrails/nodes.py
+apps/api/src/youcode_ai/agents/guardrails/prompt.py
+apps/api/src/youcode_ai/agents/guardrails/schemas.py
+apps/api/src/youcode_ai/agents/guardrails/service.py
 apps/api/src/youcode_ai/agents/guide/agent.py
 apps/api/src/youcode_ai/agents/guide/nodes.py
 apps/api/src/youcode_ai/agents/guide/prompt.py

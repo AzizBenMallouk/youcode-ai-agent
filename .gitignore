@@ -5,3 +5,4 @@ __pycache__/
 .ruff_cache/
 data/*.db
 data/parent_store/
+youcode-383711-be6f512e7af2.json

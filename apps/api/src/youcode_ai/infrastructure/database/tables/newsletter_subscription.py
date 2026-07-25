@@ -43,6 +43,23 @@ class NewsletterSubscriptionTable(Base):
         index=True,
     )
 
+    phone_number: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        index=True,
+    )
+
+    full_name: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
+    cin: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        index=True,
+    )
+
     language: Mapped[Language] = mapped_column(
         SqlEnum(
             Language,

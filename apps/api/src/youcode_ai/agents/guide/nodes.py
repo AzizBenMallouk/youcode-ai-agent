@@ -11,6 +11,7 @@ from youcode_ai.agents.guide.service import (
 from youcode_ai.orchestration.state import (
     YouCodeState,
 )
+from youcode_ai.core.config import settings
 
 
 class GuideNodes:
@@ -117,9 +118,14 @@ class GuideNodes:
                 break
 
         if last_user_index is None:
-            return list(messages)
-
-        return list(messages[:last_user_index])
+            history = list(messages)
+        else:
+            history = list(messages[:last_user_index])
+            
+        max_messages = settings.max_history_messages
+        if max_messages > 0:
+            return history[-max_messages:]
+        return history
 
     @staticmethod
     def _missing_message() -> dict[str, Any]:
