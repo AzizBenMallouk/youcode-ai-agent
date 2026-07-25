@@ -44,6 +44,12 @@ class NewsletterExtraction(BaseModel):
         max_length=320,
     )
 
+    phone_number: str | None = Field(
+        default=None,
+        description="Numéro de téléphone du visiteur.",
+        max_length=20,
+    )
+
     full_name: str | None = Field(
         default=None,
         description="Nom complet du visiteur.",

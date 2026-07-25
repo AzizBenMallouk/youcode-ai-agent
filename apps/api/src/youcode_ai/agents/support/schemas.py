@@ -46,6 +46,11 @@ class SupportInformationExtraction(BaseModel):
         description=("Adresse email explicitement présente dans le message."),
     )
 
+    phone_number: str | None = Field(
+        default=None,
+        description=("Numéro de téléphone (ex: 06..., +212...) explicitement présent dans le message."),
+    )
+
     full_name: str | None = Field(
         default=None,
         description=("Nom complet explicitement présent dans le message."),
