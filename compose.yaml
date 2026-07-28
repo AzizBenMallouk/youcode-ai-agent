@@ -9,66 +9,214 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    container_name: youcode-api
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
-      - ./.env:/app/.env
-      - ./youcode-383711-be6f512e7af2.json:/app/youcode-383711-be6f512e7af2.json
-    environment:
-      - QDRANT_URL=http://qdrant:6333
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/youcode-383711-be6f512e7af2.json
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - qdrant
-    restart: unless-stopped
-
   postgres:
     image: postgres:15-alpine
     container_name: youcode-postgres
     environment:
-      - POSTGRES_USER=youcode
-      - POSTGRES_PASSWORD=youcode_pass
-      - POSTGRES_DB=evolution
+      - POSTGRES_USER=${POSTGRES_USER:-youcode}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-youcode_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-evolution}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-youcode}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     container_name: youcode-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  guide:
+    build:
+      context: .
+      dockerfile: ./services/guide/Dockerfile
+    container_name: youcode-guide
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-youcode}:${POSTGRES_PASSWORD:-youcode_pass}@postgres:5432/${POSTGRES_DB:-evolution}
+    depends_on:
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  support:
+    build:
+      context: .
+      dockerfile: ./services/support/Dockerfile
+    container_name: youcode-support
+    env_file:
+      - .env
+    ports:
+      - "8002:8002"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-youcode}:${POSTGRES_PASSWORD:-youcode_pass}@postgres:5432/${POSTGRES_DB:-evolution}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  newsletter:
+    build:
+      context: .
+      dockerfile: ./services/newsletter/Dockerfile
+    container_name: youcode-newsletter
+    env_file:
+      - .env
+    ports:
+      - "8003:8003"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-youcode}:${POSTGRES_PASSWORD:-youcode_pass}@postgres:5432/${POSTGRES_DB:-evolution}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  sheet-gmcp:
+    build:
+      context: ./services/sheet-gmcp
+    container_name: youcode-sheet-gmcp
+    env_file:
+      - .env
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./youcode-383711-be6f512e7af2.json:/app/credentials.json:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - SHEETS_DOCUMENT_ID=${GOOGLE_SHEET_ID}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: ./services/orchestrator/Dockerfile
+    container_name: youcode-orchestrator
+    env_file:
+      - .env
+    ports:
+      - "8010:8010"
+    environment:
+      - GUIDE_URL=http://guide:8001
+      - SUPPORT_URL=http://support:8002
+      - NEWSLETTER_URL=http://newsletter:8003
+      - SHEET_GMCP_URL=http://sheet-gmcp:8004
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - QDRANT_URL=http://qdrant:6333
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-youcode}:${POSTGRES_PASSWORD:-youcode_pass}@postgres:5432/${POSTGRES_DB:-evolution}
+    depends_on:
+      guide:
+        condition: service_started
+      support:
+        condition: service_started
+      newsletter:
+        condition: service_started
+      sheet-gmcp:
+        condition: service_started
+      postgres:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: ./services/gateway/Dockerfile
+    container_name: youcode-gateway
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      - ORCHESTRATOR_URL=http://orchestrator:8010
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - EVOLUTION_API_URL=http://evolution-api:8080
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-super_secret_key}
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   evolution-api:
     image: evoapicloud/evolution-api:latest
     container_name: youcode-evolution-api
     ports:
-      - "8080:8080"
+      - "8090:8080"
     volumes:
       - evolution_instances:/evolution/instances
     environment:
       - SERVER_URL=http://localhost:8080
-      - AUTHENTICATION_API_KEY=super_secret_key
-      - WEBHOOK_GLOBAL_URL=http://api:8000/api/v1/whatsapp/webhook
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-super_secret_key}
+      - WEBHOOK_GLOBAL_URL=http://gateway:8000/api/v1/whatsapp/webhook
       - WEBHOOK_GLOBAL_ENABLED=true
       - WEBHOOK_GLOBAL_WEBSOCKET=false
       - WEBHOOK_EVENTS_APPLICATION_STARTUP=false
-      - WEBHOOK_EVENTS_MESSAGE_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://youcode:youcode_pass@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER:-youcode}:${POSTGRES_PASSWORD:-youcode_pass}@postgres:5432/${POSTGRES_DB:-evolution}?schema=public
       - CACHE_REDIS_ENABLED=true
       - CACHE_REDIS_URI=redis://redis:6379
       - REDIS_URI=redis://redis:6379
     depends_on:
-      - api
-      - postgres
-      - redis
+      gateway:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

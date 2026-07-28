@@ -9,17 +9,17 @@ from sqlalchemy.engine import (
     create_engine,
 )
 
-from youcode_ai.core.config import settings
-from youcode_ai.infrastructure.database.base import (
+from shared.core.config import settings
+from shared.infrastructure.database.base import (
     Base,
 )
-from youcode_ai.infrastructure.database.connection import (
+from shared.infrastructure.database.connection import (
     prepare_database_url,
 )
 
 # Importe toutes les tables pour les
 # enregistrer dans Base.metadata.
-from youcode_ai.infrastructure.database import (
+from shared.infrastructure.database import (
     tables as _tables,
 )
 

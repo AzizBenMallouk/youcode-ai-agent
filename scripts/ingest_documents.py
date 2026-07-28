@@ -1,6 +1,6 @@
 import traceback
 
-from youcode_ai.rag.ingestion import (
+from shared.rag.ingestion import (
     DocumentIngestionService,
 )
 

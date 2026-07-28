@@ -1,0 +1,79 @@
+name: CI/CD to ECR and GitOps Update
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REPOSITORY_PREFIX: youcode-ai
+  # URL du repo d'infrastructure (GitOps)
+  GITOPS_REPO: "youcode-school/youcode-ai-gitops"
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    # Répéter pour chaque microservice
+    - name: Build, tag, and push Gateway image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-gateway:$IMAGE_TAG -f services/gateway/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-gateway:$IMAGE_TAG
+
+    - name: Build, tag, and push Orchestrator image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-orchestrator:$IMAGE_TAG -f services/orchestrator/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-orchestrator:$IMAGE_TAG
+
+    # Etc... (Support, Newsletter, Guide)
+
+  update-gitops:
+    name: Update GitOps Repository
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout GitOps Repository
+      uses: actions/checkout@v3
+      with:
+        repository: ${{ env.GITOPS_REPO }}
+        token: ${{ secrets.GITOPS_PAT }}
+        path: gitops-repo
+
+    - name: Update Helm Values
+      run: |
+        cd gitops-repo/helm/youcode-ai
+        # Update the tags using yq or sed
+        sed -i 's/tag: .*/tag: "${{ github.sha }}"/g' values.yaml
+        
+    - name: Commit and Push
+      run: |
+        cd gitops-repo
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "chore(cd): update images tag to ${{ github.sha }}"
+        git push origin main

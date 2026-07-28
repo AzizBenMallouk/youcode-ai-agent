@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: support
+  labels:
+    app: support
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: support
+  template:
+    metadata:
+      labels:
+        app: support
+    spec:
+      containers:
+      - name: support
+        image: "{{ .Values.microservices.support.image.repository }}:{{ .Values.microservices.support.image.tag }}"
+        ports:
+        - containerPort: 8002
+        env:
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@postgres:5432/{{ .Values.postgres.auth.database }}"
+        - name: SHEET_GMCP_URL
+          value: "http://sheet-gmcp:8004"
+        envFrom:
+        - secretRef:
+            name: youcode-secrets
+            optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: support
+spec:
+  selector:
+    app: support
+  ports:
+  - port: 8002
+    targetPort: 8002

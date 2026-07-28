@@ -5,10 +5,10 @@ from typing import List
 from langchain_core.documents import Document
 from qdrant_client.models import Distance, VectorParams
 
-from youcode_ai.core.config import settings
-from youcode_ai.core.llm import create_embedding_model
-from youcode_ai.infrastructure.vector import get_qdrant_client
-from youcode_ai.rag.vector_store import detect_embedding_dimension
+from shared.core.config import settings
+from shared.core.llm import create_embedding_model
+from shared.infrastructure.vector import get_qdrant_client
+from shared.rag.vector_store import detect_embedding_dimension
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

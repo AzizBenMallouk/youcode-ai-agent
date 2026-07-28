@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sheet-gmcp
+  labels:
+    app: sheet-gmcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sheet-gmcp
+  template:
+    metadata:
+      labels:
+        app: sheet-gmcp
+    spec:
+      containers:
+      - name: sheet-gmcp
+        image: "{{ .Values.microservices.sheet_gmcp.image.repository }}:{{ .Values.microservices.sheet_gmcp.image.tag }}"
+        ports:
+        - containerPort: 8004
+        # Need to mount Google service account credentials as a volume or secret
+        # In a real environment, this should be mounted from a Kubernetes Secret
+        volumeMounts:
+        - name: google-creds
+          mountPath: /app/credentials
+          readOnly: true
+      volumes:
+      - name: google-creds
+        secret:
+          secretName: google-credentials-secret
+          optional: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sheet-gmcp
+spec:
+  selector:
+    app: sheet-gmcp
+  ports:
+  - port: 8004
+    targetPort: 8004

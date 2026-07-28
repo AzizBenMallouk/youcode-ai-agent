@@ -1,0 +1,89 @@
+from collections.abc import Sequence
+
+from langchain_core.messages import (
+    BaseMessage,
+    HumanMessage,
+)
+from services.guide.agent import (
+    create_guide_agent,
+)
+from services.guide.schemas import (
+    GuideResponse,
+)
+from shared.domain.enums.common import (
+    Language,
+)
+
+
+class GuideAgentService:
+    def __init__(self) -> None:
+        self.agent = create_guide_agent()
+
+    def invoke(
+        self,
+        *,
+        message: str,
+        history: Sequence[BaseMessage] | None = None,
+    ) -> GuideResponse:
+        """
+        Exécute le Guide Agent.
+
+        L'historique est fourni par le workflow
+        principal. Le service ne conserve aucun
+        état en mémoire.
+        """
+
+        messages: list[BaseMessage] = list(history or [])
+
+        messages.append(HumanMessage(content=message.strip()))
+
+        try:
+            result = self.agent.invoke(
+                {
+                    "messages": messages,
+                }
+            )
+
+            response = result.get("structured_response")
+
+            if response is None:
+                print("DEBUG: structured_response is None. Raw result:", result)
+            elif not isinstance(response, GuideResponse):
+                print(
+                    "DEBUG: structured_response is not GuideResponse. Type:",
+                    type(response),
+                    "Value:",
+                    response,
+                )
+
+            if isinstance(
+                response,
+                GuideResponse,
+            ):
+                return response
+
+            return self._technical_error()
+
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            return self._technical_error()
+
+    @staticmethod
+    def _technical_error() -> GuideResponse:
+        return GuideResponse(
+            language=Language.FR,
+            category="practical",
+            answer=(
+                "Une erreur technique est "
+                "survenue pendant la recherche. "
+                "Veuillez réessayer."
+            ),
+            information_available=False,
+            requires_human=False,
+        )
+
+
+def create_guide_agent_service() -> GuideAgentService:
+    return GuideAgentService()

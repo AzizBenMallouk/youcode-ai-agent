@@ -1,0 +1,91 @@
+# Global Values
+global:
+  env: "development"
+
+# PostgreSQL StatefulSet
+postgres:
+  image: "postgres:15-alpine"
+  auth:
+    username: "youcode"
+    password: "youcode_pass"
+    database: "evolution"
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+
+# Redis StatefulSet
+redis:
+  image: "redis:7-alpine"
+  persistence:
+    size: 2Gi
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+
+# Qdrant StatefulSet
+qdrant:
+  image: "qdrant/qdrant:latest"
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+
+# Evolution API
+evolution:
+  image:
+    repository: "youcode/evolution-api"
+    tag: "latest"
+  env:
+    auth_jwt_secret: "super_secret_jwt"
+    webhook_global_url: "http://gateway:8000/api/v1/webhook/whatsapp"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Shared configuration for Microservices
+microservices:
+  gateway:
+    image:
+      repository: "youcode/gateway"
+      tag: "latest"
+  orchestrator:
+    image:
+      repository: "youcode/orchestrator"
+      tag: "latest"
+  support:
+    image:
+      repository: "youcode/support"
+      tag: "latest"
+  newsletter:
+    image:
+      repository: "youcode/newsletter"
+      tag: "latest"
+  guide:
+    image:
+      repository: "youcode/guide"
+      tag: "latest"
+  sheet_gmcp:
+    image:
+      repository: "youcode/sheet-gmcp"
+      tag: "latest"
+
+# Ingress Configuration (NGINX)
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: api.youcode.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: gateway
+        - path: /evolution
+          pathType: Prefix
+          service: evolution-api

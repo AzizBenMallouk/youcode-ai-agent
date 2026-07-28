@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  labels:
+    app: orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: "{{ .Values.microservices.orchestrator.image.repository }}:{{ .Values.microservices.orchestrator.image.tag }}"
+        ports:
+        - containerPort: 8006
+        env:
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://{{ .Values.postgres.auth.username }}:{{ .Values.postgres.auth.password }}@postgres:5432/{{ .Values.postgres.auth.database }}"
+        - name: SUPPORT_AGENT_URL
+          value: "http://support:8002"
+        - name: NEWSLETTER_AGENT_URL
+          value: "http://newsletter:8003"
+        - name: GUIDE_AGENT_URL
+          value: "http://guide:8001"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+spec:
+  selector:
+    app: orchestrator
+  ports:
+  - port: 8006
+    targetPort: 8006
