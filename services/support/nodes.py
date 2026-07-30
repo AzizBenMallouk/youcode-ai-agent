@@ -9,6 +9,7 @@ from pydantic import (
     TypeAdapter,
     ValidationError,
 )
+from typing import Any
 from .extractor import (
     SupportExtractor,
     create_support_extractor,
@@ -301,7 +302,9 @@ class SupportNodes:
                 cin=draft.get("cin", ""),
                 campus=draft.get("campus", ""),
                 intent=draft["request_type"],
-                details=draft["description"]
+                details=draft["description"],
+                old_date=draft.get("scheduled_test_date", ""),
+                new_date=draft.get("requested_test_date", "")
             )
 
             if draft["request_type"] == RequestType.TEST_RESCHEDULE.value:

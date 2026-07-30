@@ -46,7 +46,7 @@ class MCPAgentClient:
     async def __aenter__(self) -> "MCPAgentClient":
         self._exit_stack = AsyncExitStack()
         try:
-            http_client = httpx.AsyncClient(timeout=self._timeout)
+            http_client = httpx.AsyncClient(timeout=self._timeout, follow_redirects=True)
             transport = await self._exit_stack.enter_async_context(
                 streamable_http_client(
                     self._mcp_url,

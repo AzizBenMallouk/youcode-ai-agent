@@ -25,48 +25,48 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str
+    app_name: str = Field(default="YouCode AI")
     app_env: Literal[
         "development",
         "test",
         "production",
-    ]
-    app_debug: bool
+    ] = Field(default="development")
+    app_debug: bool = Field(default=False)
 
     # Providers
     chat_provider: Literal[
         "gemini",
         "ollama",
         "grok",
-    ]
+    ] = Field(default="gemini")
 
     embedding_provider: Literal[
         "gemini",
         "ollama",
-    ]
+    ] = Field(default="gemini")
 
     # Gemini
-    google_api_key: str | None = None
-    gemini_chat_model: str
-    gemini_embedding_model: str
+    google_api_key: str | None = Field(default="dummy_google_api_key")
+    gemini_chat_model: str = Field(default="gemini-1.5-pro")
+    gemini_embedding_model: str = Field(default="text-embedding-004")
 
     # Ollama
-    ollama_base_url: str
-    ollama_chat_model: str
-    ollama_embedding_model: str
+    ollama_base_url: str = Field(default="http://localhost:11434")
+    ollama_chat_model: str = Field(default="llama3")
+    ollama_embedding_model: str = Field(default="nomic-embed-text")
 
     # Grok
     grok_api_key: str | None = None
     grok_chat_model: str = "grok-2-latest"
 
     # LangGraph
-    langgraph_checkpoint_path: str
+    langgraph_checkpoint_path: str = Field(default="checkpoints.sqlite")
 
     # Database
-    database_url: str
+    database_url: str = Field(default="postgresql+psycopg2://youcode:youcode_pass@postgres:5432/evolution")
 
     # Qdrant
-    qdrant_url: str
+    qdrant_url: str = Field(default="http://qdrant:6333")
     qdrant_api_key: str | None = None
     qdrant_documents_collection: str = Field(default="youcode_documents_gemini")
     qdrant_knowledge_gaps_collection: str = Field(
@@ -74,15 +74,17 @@ class Settings(BaseSettings):
     )
     qdrant_guardrails_collection: str = Field(default="youcode_guardrails_gemini")
     rag_ingestion_batch_size: int = Field(
+        default=100,
         ge=1,
         le=500,
     )
 
     # RAG
-    documents_path: Path
-    parent_store_path: Path
+    documents_path: Path = Field(default=Path("documents"))
+    parent_store_path: Path = Field(default=Path("parent_store"))
 
     rag_top_k: int = Field(
+        default=5,
         ge=1,
         le=50,
     )
@@ -96,21 +98,25 @@ class Settings(BaseSettings):
     rag_rerank_top_k: int = Field(default=5, gt=0)
 
     rag_parent_chunk_size: int = Field(
+        default=1000,
         ge=500,
         le=5000,
     )
 
     rag_parent_chunk_overlap: int = Field(
+        default=200,
         ge=0,
         le=1000,
     )
 
     rag_child_chunk_size: int = Field(
+        default=200,
         ge=100,
         le=2000,
     )
 
     rag_child_chunk_overlap: int = Field(
+        default=50,
         ge=0,
         le=500,
     )
@@ -124,31 +130,35 @@ class Settings(BaseSettings):
     evolution_api_key: str = Field(default="super_secret_key")
     webhook_secret: str = Field(default="")
 
-    registration_api_url: str
+    registration_api_url: str = Field(default="http://registration-api:8080")
     registration_api_key: str | None = None
 
-    test_session_api_url: str
+    test_session_api_url: str = Field(default="http://test-session-api:8080")
 
-    email_api_url: str
+    email_api_url: str = Field(default="http://email-api:8080")
 
     external_api_timeout: float = Field(
+        default=10.0,
         gt=0,
         le=120,
     )
 
     # Conversation
     max_history_messages: int = Field(
+        default=20,
         ge=1,
         le=100,
     )
 
     # Consent
-    consent_version: str
+    consent_version: str = Field(default="1.0")
     consent_secret_key: str = Field(
+        default="a-very-secret-consent-key-at-least-32-chars",
         min_length=32,
     )
 
     consent_token_ttl_minutes: int = Field(
+        default=60,
         ge=1,
         le=1440,
     )

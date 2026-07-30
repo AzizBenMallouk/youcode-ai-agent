@@ -229,7 +229,10 @@ class NewsletterNodes:
                 agent_base_url=target_url,
                 tool_name="append_newsletter_subscription",
                 email=email,
-                status=status
+                status=status,
+                full_name=draft.get("full_name", ""),
+                motif=", ".join(draft.get("topics", [])),
+                campus=draft.get("campus", "")
             )
             
             ref = str(uuid.uuid4())[:8]

@@ -110,7 +110,8 @@ services:
 
   sheet-gmcp:
     build:
-      context: ./services/sheet-gmcp
+      context: .
+      dockerfile: ./services/sheet-gmcp/Dockerfile
     container_name: youcode-sheet-gmcp
     env_file:
       - .env

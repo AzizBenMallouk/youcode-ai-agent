@@ -1,57 +1,89 @@
-# YouCode AI Agent - Guide de Démarrage WhatsApp
+# YouCode AI Agent - Architecture Microservices & GitOps
 
-L'application utilise **Evolution API** pour faire le pont entre WhatsApp et nos agents d'intelligence artificielle. Evolution API se charge de recevoir les messages WhatsApp, de les envoyer à notre `Gateway`, et de renvoyer la réponse de l'IA à l'utilisateur.
+Ce projet déploie une flotte d'agents d'Intelligence Artificielle intégrés à WhatsApp (via Evolution API) pour automatiser le support, les inscriptions, et les workflows de YouCode.
 
-Voici les étapes complètes pour connecter votre propre téléphone et tester l'application en conditions réelles :
+Le système utilise une architecture de **Microservices** et est conçu pour être déployé sur **Kubernetes (EKS)** en respectant la philosophie **GitOps**.
 
-## Étape 1 : Vérifier que les services tournent
-Si ce n'est pas déjà fait, lancez toute l'infrastructure (Postgres, Qdrant, Redis, Evolution API, Gateway, Orchestrateur, et les Agents) :
+---
+
+## 🏗 Architecture & GitOps (Le Workflow CI/CD)
+
+Notre système utilise un paradigme **GitOps** stict, séparant le code source de l'état de l'infrastructure :
+
+1. **Dépôt Application (`youcode-ai-agent`)** : Contient le code métier Python (FastAPI, LangGraph).
+2. **Dépôt Infrastructure (`youcode-ai-gitops`)** : Contient l'état désiré du cluster (Manifestes Helm Kubernetes).
+
+### Comment ça marche ?
+1. Un développeur pousse du code sur la branche `main` de ce dépôt.
+2. **GitHub Actions (CI)** se déclenche : il construit les images Docker de tous les microservices et les pousse vers le registre cloud (Amazon ECR).
+3. Le workflow CI **modifie automatiquement** le fichier `values.yaml` dans le second dépôt (`youcode-ai-gitops`) avec le nouveau tag d'image, puis fait un commit automatique.
+4. **ArgoCD (CD)**, installé dans le cluster Kubernetes, détecte le changement sur le dépôt GitOps, et synchronise instantanément le cluster (déploiements sans coupure).
+
+---
+
+## 🚀 Lancer le projet en Local (Simulation Minikube)
+
+Vous n'avez pas besoin d'un compte AWS pour tester le flux complet. Nous avons préparé un environnement de simulation local ultra-réaliste.
+
+### Prérequis
+- `minikube` installé.
+- `kubectl` et `helm` installés.
+
+### Démarrage Automatique
+Exécutez simplement notre script d'amorçage :
 ```bash
-docker compose up -d
+chmod +x setup-local-eks.sh
+./setup-local-eks.sh
 ```
-Vous pouvez vérifier que Evolution API tourne bien sur le port `8090` :
-```bash
-docker compose ps
-```
 
-## Étape 2 : Créer une Instance WhatsApp sur Evolution API
-Pour connecter un numéro, nous devons d'abord créer une "Instance" dans Evolution API. 
+Ce script va :
+1. Démarrer un cluster Minikube local.
+2. Activer l'Ingress NGINX.
+3. Installer ArgoCD pour le déploiement continu.
+4. Appliquer la Stack `Helm` (Bases de données StatefulSets, APIs, et Agents).
 
-Exécutez cette commande dans votre terminal. Elle va créer l'instance `test_instance` et générer le QR Code :
+*(Alternative : Vous pouvez toujours utiliser `docker compose up -d --build` si vous voulez juste tester le code sans Kubernetes).*
+
+---
+
+## 📱 Connecter WhatsApp (Interface QR)
+
+L'application utilise **Evolution API** pour brancher l'IA directement sur WhatsApp. Nous avons ajouté une interface web minimale pour scanner le QR Code très facilement.
+
+### Étape 1 : Créer l'instance dans Evolution API
+Si c'est votre première exécution, demandez à l'API de créer l'instance "youcode-ai" :
 ```bash
-curl -X POST http://localhost:8090/instance/create \
+curl -X POST http://localhost:8080/instance/create \
   -H "Content-Type: application/json" \
-  -H "apikey: super_secret_key" \
+  -H "apikey: B6D711FCDE4D4FD5936544120E713976" \
   -d '{
-    "instanceName": "test_instance",
+    "instanceName": "youcode-ai",
     "qrcode": true,
     "integration": "WHATSAPP-BAILEYS"
 }'
 ```
+*(Si vous êtes sur Minikube, remplacez `localhost:8080` par `api.youcode.local/evolution`).*
 
-*(Note : Evolution API est configuré via `compose.yaml` pour brancher automatiquement les webhooks globaux sur notre Gateway `http://gateway:8000/api/v1/whatsapp/webhook`, vous n'avez donc pas besoin de configurer les webhooks manuellement !)*
+### Étape 2 : Scanner le QR Code via l'Interface Web
+Ouvrez simplement votre navigateur à l'adresse suivante :
+👉 **http://localhost:8000/qr**
+*(Sur Minikube : `http://api.youcode.local/qr`)*
 
-## Étape 3 : Scanner le QR Code
-La requête ci-dessus vous retournera une réponse JSON contenant une clé `"qrcode"` avec une chaîne en `base64`. 
+Une belle page minimale s'ouvrira, affichant le QR Code WhatsApp en direct.
+1. Ouvrez WhatsApp sur le téléphone "Bot".
+2. Allez dans **Appareils connectés** > **Connecter un appareil**.
+3. Scannez le QR code affiché à l'écran. 
 
-Pour l'afficher et la scanner :
-1. Copiez la valeur en `base64` (sans les guillemets).
-2. Allez sur un convertisseur en ligne comme [Base64 to Image](https://codebeautify.org/base64-to-image-converter).
-3. Collez la chaîne, cela affichera le QR code.
-4. Ouvrez WhatsApp sur le téléphone que vous voulez utiliser comme "Bot".
-5. Allez dans **Appareils connectés** > **Connecter un appareil** et scannez le QR code.
+Le tour est joué, le Bot est en ligne !
 
-*Alternative (Plus simple)* : Vous pouvez utiliser Postman ou Insomnia pour lancer la requête `POST` précédente, beaucoup d'outils convertissent automatiquement le `base64` en image !
+### Étape 3 : Tester l'Agent
+Demandez à quelqu'un d'envoyer un message au numéro connecté (ex: *"J'ai besoin de reporter mon test de demain"*). La Gateway intercepte le webhook, l'envoie à l'Orchestrateur LangGraph, qui délègue la tâche au bon agent (Support). L'agent peut même utiliser Google Sheets de manière autonome.
 
-## Étape 4 : Interagir !
-1. Demandez à un ami (ou utilisez un autre numéro de téléphone) d'envoyer un message au numéro que vous venez de connecter (le Bot).
-2. Envoyez par exemple : `"Salut, c'est quoi YouCode ?"`
-3. L'événement passera par Evolution API -> Gateway -> Orchestrateur -> Agent Guide. L'agent formulera une réponse qui redescendra automatiquement vers WhatsApp.
+---
 
 ### 💡 Astuce de Debugging
-Si vous voulez voir en direct comment les requêtes circulent entre les agents, ouvrez un terminal et affichez les logs en temps réel :
+Si vous voulez voir en direct comment l'IA réfléchit, consultez les logs de l'orchestrateur :
 ```bash
-docker compose logs -f gateway orchestrator support guide
+kubectl logs -f deployment/orchestrator
+# Ou si vous êtes sous Docker : docker compose logs -f orchestrator
 ```
-
-Et voilà ! Votre bot WhatsApp intelligent est officiellement en ligne 🚀.

@@ -76,11 +76,11 @@ def create_document_vector_store(
     collection_name = settings.qdrant_documents_collection
 
     if not force_recreate and not effective_client.collection_exists(collection_name=collection_name):
-        raise RuntimeError(
-            "The Qdrant document collection "
-            f"'{collection_name}' does not "
-            "exist. Run document ingestion "
-            "first."
+        import logging
+        logging.warning("Collection does not exist. Auto-creating empty collection with dimension 768 to allow startup.")
+        effective_client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=768, distance=Distance.COSINE),
         )
 
     return QdrantVectorStore(

@@ -55,6 +55,14 @@ def create_embedding_model() -> Embeddings:
         if not settings.google_api_key:
             raise RuntimeError("GOOGLE_API_KEY is required for Gemini embeddings.")
 
+        if settings.google_api_key == "dummy_google_api_key":
+            class DummyEmbeddings(Embeddings):
+                def embed_documents(self, texts: list[str]) -> list[list[float]]:
+                    return [[0.0] * 768 for _ in texts]
+                def embed_query(self, text: str) -> list[float]:
+                    return [0.0] * 768
+            return DummyEmbeddings()
+
         return GoogleGenerativeAIEmbeddings(
             model=(settings.gemini_embedding_model),
             google_api_key=(settings.google_api_key),

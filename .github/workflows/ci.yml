@@ -9,7 +9,7 @@ env:
   AWS_REGION: eu-west-3
   ECR_REPOSITORY_PREFIX: youcode-ai
   # URL du repo d'infrastructure (GitOps)
-  GITOPS_REPO: "youcode-school/youcode-ai-gitops"
+  GITOPS_REPO: "AzizBenMallouk/youcode-ai-gitops"
 
 jobs:
   build-and-push:

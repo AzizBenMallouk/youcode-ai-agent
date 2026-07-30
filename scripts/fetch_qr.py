@@ -5,7 +5,7 @@ import base64
 def get_qr():
     url = "http://localhost:8090/instance/connect/youcode-ai"
     req = urllib.request.Request(url, headers={
-        "apikey": "super_secret_key"
+        "apikey": "B6D711FCDE4D4FD5936544120E713976"
     })
     
     try:

@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -e ./services/orchestrator/
 
 ENV PYTHONPATH=/app
 
-CMD ["uvicorn", "services.orchestrator.main:app", "--host", "0.0.0.0", "--port", "8010"]
+CMD ["uvicorn", "services.orchestrator.main:app", "--host", "0.0.0.0", "--port", "8006"]

@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from fastapi import FastAPI
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 import gspread
 from pydantic import BaseModel, Field
 
@@ -25,13 +25,16 @@ def get_client() -> gspread.Client:
     
     raise ValueError("Google Sheets credentials not found. Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CREDENTIALS_JSON.")
 
-def get_sheet(spreadsheet_id: str, worksheet_name: str) -> gspread.worksheet.Worksheet:
+def get_sheet(spreadsheet_id: str, worksheet_name: str, headers: list[str] = None) -> gspread.worksheet.Worksheet:
     client = get_client()
     spreadsheet = client.open_by_key(spreadsheet_id)
     try:
         return spreadsheet.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        return spreadsheet.add_worksheet(title=worksheet_name, rows=100, cols=20)
+        sheet = spreadsheet.add_worksheet(title=worksheet_name, rows=100, cols=20)
+        if headers:
+            sheet.append_row(headers)
+        return sheet
 
 
 @mcp.tool(
@@ -49,7 +52,9 @@ def append_visitor_request(
     cin: str,
     campus: str,
     intent: str,
-    details: str
+    details: str,
+    old_date: str = "",
+    new_date: str = ""
 ) -> str:
     """Appends a new visitor request to the 'VisitorRequests' sheet."""
     spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
@@ -57,8 +62,9 @@ def append_visitor_request(
         return "Error: GOOGLE_SHEET_ID environment variable not set."
 
     try:
-        sheet = get_sheet(spreadsheet_id, "VisitorRequests")
-        row = [user_id, first_name, last_name, email, cin, campus, intent, details]
+        headers = ["User ID", "First Name", "Last Name", "Email", "CIN", "Campus", "Intent", "Details", "Old Date", "New Date"]
+        sheet = get_sheet(spreadsheet_id, "VisitorRequests", headers)
+        row = [user_id, first_name, last_name, email, cin, campus, intent, details, old_date, new_date]
         sheet.append_row(row)
         return f"Successfully saved visitor request for {email}."
     except Exception as e:
@@ -74,16 +80,20 @@ def append_visitor_request(
 )
 def append_newsletter_subscription(
     email: str,
-    status: str
+    status: str,
+    full_name: str = "",
+    motif: str = "",
+    campus: str = ""
 ) -> str:
     """Appends a new newsletter subscription to the 'Newsletter' sheet."""
-    spreadsheet_id = os.getenv("SHEETS_DOCUMENT_ID")
+    spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
     if not spreadsheet_id:
-        return "Error: SHEETS_DOCUMENT_ID environment variable not set."
+        return "Error: GOOGLE_SHEET_ID environment variable not set."
 
     try:
-        sheet = get_sheet(spreadsheet_id, "Newsletter")
-        row = [email, status]
+        headers = ["Email", "Status", "Full Name", "Motif", "Campus"]
+        sheet = get_sheet(spreadsheet_id, "Newsletter", headers)
+        row = [email, status, full_name, motif, campus]
         sheet.append_row(row)
         return f"Successfully saved newsletter preference for {email}."
     except Exception as e:
@@ -92,8 +102,9 @@ def append_newsletter_subscription(
 
 
 # FastAPI wrapper for Docker healthcheck and mounting Streamable HTTP
-app = FastAPI(title="YouCode AI — Sheet GMCP Server")
-app.mount("/mcp", mcp.streamable_http_app())
+mcp_app = mcp.http_app(path="/")
+app = FastAPI(title="YouCode AI — Sheet GMCP Server", lifespan=mcp_app.lifespan)
+app.mount("/mcp", mcp_app)
 
 @app.get("/health")
 async def health():

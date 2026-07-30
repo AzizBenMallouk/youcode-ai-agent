@@ -62,6 +62,12 @@ class NewsletterExtraction(BaseModel):
         max_length=20,
     )
 
+    campus: str | None = Field(
+        default=None,
+        description="Campus du visiteur.",
+        max_length=50,
+    )
+
     topics: list[NewsletterTopic] = Field(
         default_factory=list,
     )

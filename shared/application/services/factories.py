@@ -1,11 +1,6 @@
 from sqlalchemy.orm import Session
-from shared.application.services.admin_user import AdminUserService
-from shared.application.services.auth import AuthService
 from shared.application.services.consent import (
     ConsentService,
-)
-from shared.application.services.email import (
-    EmailService,
 )
 from shared.application.services.registration import RegistrationService
 from shared.application.services.rescheduling import (
@@ -22,9 +17,6 @@ from shared.infrastructure.database.repositories import (
     ConsentRepository,
     VisitorRequestRepository,
 )
-from shared.infrastructure.email import (
-    create_email_gateway,
-)
 from shared.infrastructure.integrations.registration_api.client import (
     RegistrationApiClient,
 )
@@ -38,18 +30,6 @@ def create_consent_service(
     session: Session,
 ) -> ConsentService:
     return ConsentService(repository=ConsentRepository(session=session))
-
-
-def create_email_service(
-    *,
-    session: Session,
-) -> EmailService:
-    gateway = create_email_gateway(settings)
-
-    return EmailService(
-        session=session,
-        gateway=gateway,
-    )
 
 
 def create_support_request_service(
@@ -97,14 +77,6 @@ def create_registration_service() -> RegistrationService:
     )
 
     return RegistrationService(client=client)
-
-
-def create_auth_service(*, session: Session) -> AuthService:
-    return AuthService(session=session)
-
-
-def create_admin_user_service(*, session: Session) -> AdminUserService:
-    return AdminUserService(session=session)
 
 
 def create_newsletter_service(
