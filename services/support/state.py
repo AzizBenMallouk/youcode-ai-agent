@@ -19,6 +19,7 @@ class SupportState(TypedDict, total=False):
     """State pour l'agent Support."""
     messages: Annotated[list[BaseMessage], add_messages]
     session_id: str
+    user_id: str
     
     support_phase: Literal[
         "collecting",

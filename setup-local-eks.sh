@@ -41,6 +41,8 @@ docker build -t youcode/support:local -f services/support/Dockerfile .
 docker build -t youcode/guide:local -f services/guide/Dockerfile .
 docker build -t youcode/newsletter:local -f services/newsletter/Dockerfile .
 docker build -t youcode/sheet-gmcp:local -f services/sheet-gmcp/Dockerfile .
+docker build -t youcode/email-mcp:local -f services/email-mcp/Dockerfile .
+docker build -t youcode/admin:local -f services/admin/Dockerfile .
 
 # 5. Configure ArgoCD to track the GitOps repository
 echo "▶️ Deploying YouCode AI via ArgoCD (GitOps)..."
@@ -71,6 +73,10 @@ spec:
         - name: "microservices.guide.image.tag"
           value: "local"
         - name: "microservices.sheet_gmcp.image.tag"
+          value: "local"
+        - name: "microservices.email_mcp.image.tag"
+          value: "local"
+        - name: "microservices.admin.image.tag"
           value: "local"
   destination:
     server: 'https://kubernetes.default.svc'

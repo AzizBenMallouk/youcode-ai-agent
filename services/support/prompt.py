@@ -31,7 +31,6 @@ The previously collected info (draft) provides context.
 STRICT RULE: Invent nothing, deduce nothing, no actions.
 """
 
-
 CONSENT_EXTRACTION_SYSTEM_PROMPT = """
 Classify the visitor's response to the consent request.
 Decisions: `accepted`, `refused`, or `unclear`.
@@ -43,7 +42,6 @@ Examples:
 
 Rules: Silence or ambiguity = `unclear`. Never deduce consent.
 """
-
 
 SESSION_PROPOSAL_SYSTEM_PROMPT = """
 Classify the visitor's response regarding a proposed test date.

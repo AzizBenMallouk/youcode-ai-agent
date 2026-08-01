@@ -1,6 +1,3 @@
-from shared.application.schemas.consent import (
-    ConsentGrantResult,
-)
 from shared.application.schemas.support import (
     ReschedulingResult,
     SupportRequestCreate,
@@ -8,7 +5,6 @@ from shared.application.schemas.support import (
 )
 
 __all__ = [
-    "ConsentGrantResult",
     "SupportRequestCreate",
     "SupportRequestResult",
     "ReschedulingResult",

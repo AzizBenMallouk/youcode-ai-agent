@@ -14,12 +14,7 @@ from .validator import (
     get_newsletter_question,
     normalize_email,
 )
-from shared.application.services.newsletter import (
-    NewsletterService,
-)
-from shared.infrastructure.database.connection import (
-    database_session,
-)
+
 from .state import (
     NewsletterState,
 )
@@ -62,10 +57,10 @@ class NewsletterNodes:
                 exclude_none=True,
             )
 
-            # Auto-extract phone number from session_id if it is a WhatsApp JID
-            session_id_str = state.get("session_id", "")
-            if "@s.whatsapp.net" in session_id_str:
-                draft["phone_number"] = session_id_str.split("@")[0]
+            # Auto-extract phone number from user_id
+            user_id = state.get("user_id", "")
+            if user_id:
+                draft["phone_number"] = user_id.split("@")[0] if "@" in user_id else user_id
 
             normalized_email = normalize_email(draft.get("email"))
 
@@ -210,8 +205,8 @@ class NewsletterNodes:
             return self._technical_error()
 
         try:
-            from shared.mcp.client import call_agent_tool
-            from shared.core.config import settings
+            from shared.infrastructure.database.connection import database_session
+            from shared.infrastructure.database.tables.newsletter_subscription import NewsletterSubscription
             import uuid
 
             if action == "subscribe":
@@ -223,19 +218,20 @@ class NewsletterNodes:
             else:
                 return self._technical_error()
 
-            # Delegate to sheet-gmcp via MCP Client
-            target_url = getattr(settings, "sheet_gmcp_url", "http://sheet-gmcp:8004")
-            await call_agent_tool(
-                agent_base_url=target_url,
-                tool_name="append_newsletter_subscription",
-                email=email,
-                status=status,
-                full_name=draft.get("full_name", ""),
-                motif=", ".join(draft.get("topics", [])),
-                campus=draft.get("campus", "")
-            )
-            
             ref = str(uuid.uuid4())[:8]
+
+            with database_session() as db:
+                new_sub = NewsletterSubscription(
+                    reference=ref,
+                    phone=draft.get("phone_number", ""),
+                    email=email,
+                    status=status,
+                    full_name=draft.get("full_name", ""),
+                    motif=", ".join(draft.get("topics", [])),
+                    campus=draft.get("campus", "")
+                )
+                db.add(new_sub)
+
 
             return {
                 "active_agent": "newsletter",

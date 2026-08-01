@@ -21,6 +21,7 @@ dependencies = [
     "langchain-qdrant",
     "better-profanity",
     "mcp>=1.2.0,<2.0.0",
+    "aio-pika>=9.4.0",
 ]
 
 [build-system]

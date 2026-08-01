@@ -14,16 +14,17 @@ from .extractor import (
     SupportExtractor,
     create_support_extractor,
 )
+from .validator import (
+    get_missing_support_fields,
+    get_support_question,
+)
 from .schemas import (
     SupportWorkflowResponse,
 )
 from shared.application.schemas import (
     SupportRequestCreate,
 )
-from shared.application.services import (
-    create_rescheduling_service,
-    create_support_request_service,
-)
+
 from shared.domain.enums import (
     Language,
     RequestType,
@@ -31,28 +32,13 @@ from shared.domain.enums import (
 from shared.domain.exceptions import (
     DomainError,
 )
-from shared.infrastructure.database import (
-    database_session,
-)
+
 from .state import (
     SupportDraft,
     SupportState,
 )
 
 EMAIL_ADAPTER = TypeAdapter(EmailStr)
-
-QUESTION_BY_FIELD = {
-    "phone_number": "Quel est votre numéro de téléphone ?",
-    "full_name": "Quel est votre nom complet ?",
-    "cin": "Quel est votre numéro de CIN (Carte d'Identité Nationale) ?",
-    "request_type": ("Pouvez-vous préciser le problème que vous rencontrez ?"),
-    "email": ("Quelle adresse e-mail avez-vous utilisée pour votre candidature ?"),
-    "campus": ("Dans quel campus votre test est-il prévu : Safi, Youssoufia ou Nador ?"),
-    "scheduled_test_date": ("Quelle est la date actuelle de votre test ?"),
-    "requested_test_date": ("À partir de quelle date souhaitez-vous passer le test ?"),
-    "description": ("Pouvez-vous décrire brièvement la raison de votre demande ?"),
-}
-
 
 class SupportNodes:
     def __init__(
@@ -95,10 +81,10 @@ class SupportNodes:
             **extracted_values,
         }
 
-        # Auto-extract phone number from session_id if it is a WhatsApp JID
-        session_id_str = state.get("session_id", "")
-        if "@s.whatsapp.net" in session_id_str:
-            updated_draft["phone_number"] = session_id_str.split("@")[0]
+        # Auto-extract phone number from user_id
+        user_id = state.get("user_id", "")
+        if user_id:
+            updated_draft["phone_number"] = user_id.split("@")[0] if "@" in user_id else user_id
 
         ambiguities = list(
             updated_draft.get(
@@ -163,12 +149,12 @@ class SupportNodes:
             {},
         )
 
-        missing_fields = self._get_missing_fields(draft)
+        missing_fields = get_missing_support_fields(draft)
 
         if missing_fields:
             field_name = missing_fields[0]
 
-            answer = QUESTION_BY_FIELD[field_name]
+            answer = get_support_question(field_name)
 
             return self._answer_update(
                 state=state,
@@ -284,28 +270,29 @@ class SupportNodes:
             )
 
 
-            from shared.mcp.client import call_agent_tool
-            from shared.core.config import settings
+            from shared.infrastructure.database.connection import database_session
+            from shared.infrastructure.database.tables.visitor_request import VisitorRequest
             import uuid
-
+            
             ref = str(uuid.uuid4())[:8]
-            target_url = getattr(settings, "sheet_gmcp_url", "http://sheet-gmcp:8004")
-
-            # Delegate to sheet-gmcp via MCP Client
-            await call_agent_tool(
-                agent_base_url=target_url,
-                tool_name="append_visitor_request",
-                user_id=state.get("session_id", ""),
-                first_name=draft.get("full_name", "").split(" ")[0] if draft.get("full_name") else "",
-                last_name=" ".join(draft.get("full_name", "").split(" ")[1:]) if draft.get("full_name") else "",
-                email=draft["email"],
-                cin=draft.get("cin", ""),
-                campus=draft.get("campus", ""),
-                intent=draft["request_type"],
-                details=draft["description"],
-                old_date=draft.get("scheduled_test_date", ""),
-                new_date=draft.get("requested_test_date", "")
-            )
+            
+            with database_session() as db:
+                new_request = VisitorRequest(
+                    reference=ref,
+                    user_id=state.get("session_id", ""),
+                    first_name=draft.get("full_name", "").split(" ")[0] if draft.get("full_name") else "",
+                    last_name=" ".join(draft.get("full_name", "").split(" ")[1:]) if draft.get("full_name") else "",
+                    email=draft["email"],
+                    cin=draft.get("cin", ""),
+                    campus=draft.get("campus", ""),
+                    intent=draft["request_type"],
+                    details={
+                        "description": draft["description"],
+                        "old_date": draft.get("scheduled_test_date", ""),
+                        "new_date": draft.get("requested_test_date", "")
+                    }
+                )
+                db.add(new_request)
 
             if draft["request_type"] == RequestType.TEST_RESCHEDULE.value:
                 # We mock the rescheduling for now since it depended on Postgres
@@ -407,17 +394,37 @@ class SupportNodes:
             support_phase=("awaiting_session_confirmation"),
         )
 
-    def confirm_session_proposal(
+    async def confirm_session_proposal(
         self,
         state: SupportState,
     ) -> dict:
         # Mock database update for now
         proposed_date = date.today().strftime("%d/%m/%Y à %H:%M")
         reference = state.get("request_reference", "MOCK123")
+        
+        draft = state.get("support_draft", {})
+        email = draft.get("email")
+        old_date = draft.get("scheduled_test_date", "Date Inconnue")
+        campus = draft.get("campus", "Campus Inconnu")
+
+        if email:
+            from shared.mcp.client import call_agent_tool
+            from shared.core.config import settings
+            target_url = getattr(settings, "email_mcp_url", "http://email-mcp:8005")
+            
+            await call_agent_tool(
+                agent_base_url=target_url,
+                tool_name="send_rescheduling_email",
+                email=email,
+                old_date=old_date,
+                new_date=proposed_date,
+                campus=campus
+            )
 
         answer = (
             f"La date du {proposed_date} a été "
-            "acceptée. Votre demande attend "
+            "acceptée. Un email de confirmation "
+            "vous a été envoyé. Votre demande attend "
             "maintenant une validation humaine. "
             f"Référence : {reference}."
         )
@@ -461,43 +468,6 @@ class SupportNodes:
             requires_human=False,
         )
 
-    @staticmethod
-    def _get_missing_fields(
-        draft: SupportDraft,
-    ) -> list[str]:
-        missing_fields: list[str] = []
-
-        if not draft.get("phone_number"):
-            missing_fields.append("phone_number")
-
-        if not draft.get("full_name"):
-            missing_fields.append("full_name")
-
-        if not draft.get("cin"):
-            missing_fields.append("cin")
-
-        request_type = draft.get("request_type")
-
-        if request_type is None:
-            missing_fields.append("request_type")
-
-        if not draft.get("email"):
-            missing_fields.append("email")
-
-        if request_type == RequestType.TEST_RESCHEDULE.value:
-            if not draft.get("campus"):
-                missing_fields.append("campus")
-
-            if not draft.get("scheduled_test_date"):
-                missing_fields.append("scheduled_test_date")
-
-            if not draft.get("requested_test_date"):
-                missing_fields.append("requested_test_date")
-
-        if not draft.get("description"):
-            missing_fields.append("description")
-
-        return missing_fields
 
     @staticmethod
     def _get_last_user_message(

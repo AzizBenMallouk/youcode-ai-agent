@@ -8,7 +8,7 @@ class NewsletterDraft(TypedDict, total=False):
     email: str
     phone_number: str
     full_name: str
-    cin: str
+
     topics: list[Literal["full_program_registration", "bootcamps", "events", "youcode_news"]]
     ambiguities: list[str]
 
@@ -16,6 +16,7 @@ class NewsletterState(TypedDict, total=False):
     """State pour l'agent Newsletter."""
     messages: Annotated[list[BaseMessage], add_messages]
     session_id: str
+    user_id: str
     
     newsletter_phase: Literal[
         "collecting",

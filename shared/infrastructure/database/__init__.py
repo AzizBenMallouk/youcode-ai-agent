@@ -10,9 +10,15 @@ from shared.infrastructure.database.connection import (
 from shared.infrastructure.database.initialize import (
     initialize_database,
 )
+from shared.infrastructure.database.tables import (
+    VisitorRequest,
+    NewsletterSubscription,
+)
 
 __all__ = [
     "Base",
+    "VisitorRequest",
+    "NewsletterSubscription",
     "SessionFactory",
     "database_session",
     "engine",

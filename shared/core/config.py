@@ -34,11 +34,13 @@ class Settings(BaseSettings):
     app_debug: bool = Field(default=False)
 
     # Providers
-    chat_provider: Literal[
-        "gemini",
-        "ollama",
-        "grok",
-    ] = Field(default="gemini")
+    chat_provider: Literal["litellm"] = Field(default="litellm")
+
+    litellm_url: str = Field(default="http://litellm:4000")
+    litellm_chat_model: str = Field(default="gemini-1.5-pro")
+
+    rabbitmq_url: str = Field(default="amqp://guest:guest@rabbitmq:5672/")
+
 
     embedding_provider: Literal[
         "gemini",
@@ -54,10 +56,6 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(default="http://localhost:11434")
     ollama_chat_model: str = Field(default="llama3")
     ollama_embedding_model: str = Field(default="nomic-embed-text")
-
-    # Grok
-    grok_api_key: str | None = None
-    grok_chat_model: str = "grok-2-latest"
 
     # LangGraph
     langgraph_checkpoint_path: str = Field(default="checkpoints.sqlite")
@@ -207,11 +205,6 @@ class Settings(BaseSettings):
                 "GOOGLE_API_KEY is required when "
                 "Gemini is used as chat or "
                 "embedding provider."
-            )
-
-        if self.chat_provider == "grok" and not self.grok_api_key:
-            raise ValueError(
-                "GROK_API_KEY is required when Grok is used as chat provider."
             )
 
         return self

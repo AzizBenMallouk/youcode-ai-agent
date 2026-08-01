@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn[standard]",
     "httpx",
     "pydantic-settings",
+    "aio-pika>=9.4.0",
 ]
 
 [build-system]

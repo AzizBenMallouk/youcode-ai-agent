@@ -38,67 +38,46 @@ def get_sheet(spreadsheet_id: str, worksheet_name: str, headers: list[str] = Non
 
 
 @mcp.tool(
-    name="append_visitor_request",
+    name="generate_admin_report",
     annotations={
-        "title": "Append Visitor Request to Google Sheet",
-        "description": "Saves a visitor support request into Google Sheets instead of Postgres.",
+        "title": "Generate Admin Report in Google Sheets",
+        "description": "Creates a new sheet tab and dumps JSON data into it, returning the Google Sheet URL.",
     },
 )
-def append_visitor_request(
-    user_id: str,
-    first_name: str,
-    last_name: str,
-    email: str,
-    cin: str,
-    campus: str,
-    intent: str,
-    details: str,
-    old_date: str = "",
-    new_date: str = ""
+def generate_admin_report(
+    sheet_title: str,
+    data_json: str
 ) -> str:
-    """Appends a new visitor request to the 'VisitorRequests' sheet."""
+    """Generates an admin report from JSON data."""
+    import json
     spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
     if not spreadsheet_id:
         return "Error: GOOGLE_SHEET_ID environment variable not set."
 
     try:
-        headers = ["User ID", "First Name", "Last Name", "Email", "CIN", "Campus", "Intent", "Details", "Old Date", "New Date"]
-        sheet = get_sheet(spreadsheet_id, "VisitorRequests", headers)
-        row = [user_id, first_name, last_name, email, cin, campus, intent, details, old_date, new_date]
-        sheet.append_row(row)
-        return f"Successfully saved visitor request for {email}."
+        data = json.loads(data_json)
+        if not data:
+            return "No data provided."
+            
+        headers = list(data[0].keys())
+        sheet = get_sheet(spreadsheet_id, sheet_title, headers)
+        
+        # Clear existing data in case we are updating the same sheet
+        sheet.clear()
+        sheet.append_row(headers)
+        
+        rows = []
+        for item in data:
+            rows.append([str(item.get(h, "")) for h in headers])
+            
+        if rows:
+            sheet.append_rows(rows)
+            
+        return f"Report generated successfully. Link: https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
     except Exception as e:
-        logger.error(f"Error appending visitor request: {e}")
-        return f"Failed to save visitor request: {str(e)}"
+        logger.error(f"Error generating admin report: {e}")
+        return f"Failed to generate report: {str(e)}"
 
-@mcp.tool(
-    name="append_newsletter_subscription",
-    annotations={
-        "title": "Append Newsletter Subscription to Google Sheet",
-        "description": "Saves a newsletter subscription into Google Sheets.",
-    },
-)
-def append_newsletter_subscription(
-    email: str,
-    status: str,
-    full_name: str = "",
-    motif: str = "",
-    campus: str = ""
-) -> str:
-    """Appends a new newsletter subscription to the 'Newsletter' sheet."""
-    spreadsheet_id = os.getenv("GOOGLE_SHEET_ID")
-    if not spreadsheet_id:
-        return "Error: GOOGLE_SHEET_ID environment variable not set."
-
-    try:
-        headers = ["Email", "Status", "Full Name", "Motif", "Campus"]
-        sheet = get_sheet(spreadsheet_id, "Newsletter", headers)
-        row = [email, status, full_name, motif, campus]
-        sheet.append_row(row)
-        return f"Successfully saved newsletter preference for {email}."
-    except Exception as e:
-        logger.error(f"Error appending newsletter subscription: {e}")
-        return f"Failed to save newsletter preference: {str(e)}"
 
 
 # FastAPI wrapper for Docker healthcheck and mounting Streamable HTTP

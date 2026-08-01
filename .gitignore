@@ -8,6 +8,7 @@ env.bak/
 venv.bak/
 
 # Credentials & Secrets
+secrets/
 youcode-*.json
 *.pem
 *.key

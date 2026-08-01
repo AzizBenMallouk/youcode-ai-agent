@@ -14,7 +14,6 @@ MissingNewsletterField = Literal[
     "email",
     "topics",
     "full_name",
-    "cin",
 ]
 
 
@@ -80,8 +79,6 @@ def get_missing_newsletter_fields(
         if not draft.get("full_name"):
             missing.append("full_name")
             
-        if not draft.get("cin"):
-            missing.append("cin")
 
     return missing
 
@@ -136,12 +133,7 @@ QUESTION_BY_FIELD: dict[
         "ar": ("ما هو اسمك الكامل؟"),
         "darija": ("شنو هو الاسم الكامل ديالك؟"),
     },
-    "cin": {
-        "fr": ("Quel est votre numéro de CIN (Carte d'Identité Nationale) ?"),
-        "en": ("What is your CIN (National Identity Card) number?"),
-        "ar": ("ما هو رقم بطاقتك الوطنية (CIN)؟"),
-        "darija": ("شنو هو رقم لاكارت ناسيونال ديالك (CIN)؟"),
-    },
+
 }
 
 

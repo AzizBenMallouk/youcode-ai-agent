@@ -1,131 +1,18 @@
-from datetime import datetime
+import datetime
+import uuid
+from sqlalchemy import Column, String, DateTime
+from sqlalchemy.dialects.postgresql import UUID
+from shared.infrastructure.database.base import Base
 
-from sqlalchemy import (
-    DateTime,
-    ForeignKey,
-    String,
-)
-from sqlalchemy import (
-    Enum as SqlEnum,
-)
-from sqlalchemy.orm import (
-    Mapped,
-    mapped_column,
-    relationship,
-)
-from shared.domain.enums import (
-    Language,
-    SubscriptionStatus,
-)
-from shared.infrastructure.database.base import (
-    Base,
-)
-from shared.infrastructure.database.tables.common import (
-    enum_values,
-    generate_uuid,
-    utc_now,
-)
-
-
-class NewsletterSubscriptionTable(Base):
+class NewsletterSubscription(Base):
     __tablename__ = "newsletter_subscriptions"
 
-    id: Mapped[str] = mapped_column(
-        String(36),
-        primary_key=True,
-        default=generate_uuid,
-    )
-
-    email: Mapped[str] = mapped_column(
-        String(320),
-        unique=True,
-        nullable=False,
-        index=True,
-    )
-
-    phone_number: Mapped[str | None] = mapped_column(
-        String(20),
-        nullable=True,
-        index=True,
-    )
-
-    full_name: Mapped[str | None] = mapped_column(
-        String(150),
-        nullable=True,
-    )
-
-    cin: Mapped[str | None] = mapped_column(
-        String(20),
-        nullable=True,
-        index=True,
-    )
-
-    language: Mapped[Language] = mapped_column(
-        SqlEnum(
-            Language,
-            values_callable=enum_values,
-            native_enum=False,
-            length=20,
-        ),
-        nullable=False,
-        default=Language.FR,
-    )
-
-    campus: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True,
-        index=True,
-    )
-
-    status: Mapped[SubscriptionStatus] = mapped_column(
-        SqlEnum(
-            SubscriptionStatus,
-            values_callable=enum_values,
-            native_enum=False,
-            length=30,
-        ),
-        nullable=False,
-        default=SubscriptionStatus.ACTIVE,
-        index=True,
-    )
-
-    consent_id: Mapped[str] = mapped_column(
-        ForeignKey(
-            "consent_grants.id",
-            ondelete="RESTRICT",
-        ),
-        unique=True,
-        nullable=False,
-        index=True,
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=utc_now,
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=utc_now,
-        onupdate=utc_now,
-    )
-
-    unsubscribed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
-
-    consent: Mapped["ConsentGrantTable"] = relationship(
-        back_populates=("newsletter_subscription"),
-    )
-
-    preferences: Mapped[list["NewsletterPreferenceTable"]] = relationship(
-        back_populates="subscription",
-        cascade="all, delete-orphan",
-    )
-
-    email_deliveries: Mapped[list["EmailDeliveryTable"]] = relationship(
-        back_populates="subscription",
-    )
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    reference = Column(String(20), nullable=True, index=True)
+    phone = Column(String(50), nullable=False, index=True)
+    email = Column(String(255), nullable=True)
+    status = Column(String(50), nullable=True)
+    full_name = Column(String(100), nullable=True)
+    motif = Column(String(100), nullable=True)
+    campus = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

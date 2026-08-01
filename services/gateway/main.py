@@ -1,35 +1,81 @@
 """Gateway Service — WhatsApp webhook receiver and proxy.
 
 Receives events from Evolution API (WhatsApp), filters relevant
-messages, and proxies them to the Orchestrator for AI processing.
+messages, and publishes them to RabbitMQ for Orchestrator processing.
 
 This service is intentionally lightweight — no LLM, no database.
 It reads its configuration from environment variables directly.
 """
 
+import json
 import logging
 import os
+from contextlib import asynccontextmanager
 
+import aio_pika
 import httpx
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import HTMLResponse
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Configuration — read from env directly (no heavy shared Settings class)
+# Configuration — read from env directly
 # ---------------------------------------------------------------------------
-ORCHESTRATOR_URL: str = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:8006")
+RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 EVOLUTION_API_URL: str = os.getenv("EVOLUTION_API_URL", "http://evolution-api:8080")
 EVOLUTION_API_KEY: str = os.getenv("EVOLUTION_API_KEY", "B6D711FCDE4D4FD5936544120E713976")
 WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")
 ALLOWED_WHATSAPP_NUMBERS_STR: str = os.getenv("ALLOWED_WHATSAPP_NUMBERS", "")
 ALLOWED_WHATSAPP_NUMBERS = [n.strip() for n in ALLOWED_WHATSAPP_NUMBERS_STR.split(",") if n.strip()]
 
+
+# ---------------------------------------------------------------------------
+# RabbitMQ Connection Management
+# ---------------------------------------------------------------------------
+class RabbitMQClient:
+    connection: aio_pika.RobustConnection | None = None
+    channel: aio_pika.RobustChannel | None = None
+    exchange: aio_pika.RobustExchange | None = None
+
+mq = RabbitMQClient()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Connect to RabbitMQ
+    logger.info("Connecting to RabbitMQ...")
+    try:
+        mq.connection = await aio_pika.connect_robust(RABBITMQ_URL)
+        mq.channel = await mq.connection.channel()
+        # Declare queue to ensure it exists with DLQ arguments to avoid conflict with Orchestrator
+        await mq.channel.declare_queue("whatsapp_messages_dlq", durable=True)
+        await mq.channel.declare_queue(
+            "whatsapp_messages", 
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": "",
+                "x-dead-letter-routing-key": "whatsapp_messages_dlq"
+            }
+        )
+        
+        # Start consuming outbound messages from Orchestrator
+        await start_outbound_consumer()
+        
+        logger.info("RabbitMQ connected successfully.")
+    except Exception as e:
+        logger.error("Failed to connect to RabbitMQ: %s", e)
+    
+    yield
+    
+    # Cleanup
+    if mq.connection:
+        await mq.connection.close()
+
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-app = FastAPI(title="YouCode AI — Gateway Service")
+app = FastAPI(title="YouCode AI — Gateway Service", lifespan=lifespan)
 
 @app.get("/qr", response_class=HTMLResponse)
 async def qr_interface():
@@ -86,9 +132,7 @@ async def qr_interface():
                     container.innerHTML = '<span style="color: #ef4444;">Erreur</span>';
                 }
             }
-            // Fetch on load
             fetchQR();
-            // Refresh every 15 seconds automatically
             setInterval(fetchQR, 15000);
         </script>
     </body>
@@ -104,52 +148,94 @@ async def get_qr_code(instance_name: str) -> dict:
                 f"{EVOLUTION_API_URL}/instance/connect/{instance_name}",
                 headers={"apikey": EVOLUTION_API_KEY}
             )
-            # If 403 or 401, check the instance state. It might be already connected.
             if resp.status_code != 200:
-                # Try to get connection state
                 state_resp = await client.get(
                     f"{EVOLUTION_API_URL}/instance/connectionState/{instance_name}",
                     headers={"apikey": EVOLUTION_API_KEY}
                 )
                 if state_resp.status_code == 200 and state_resp.json().get("instance", {}).get("state") == "open":
                     return {"status": "connected"}
-                
                 return {"status": "error", "message": f"Evolution API returned {resp.status_code}"}
-
             return resp.json()
     except Exception as exc:
         logger.error("Error fetching QR: %s", exc)
         return {"status": "error", "message": str(exc)}
 
-
-async def process_and_reply(instance: str, remote_jid: str, message_text: str) -> None:
-    """Background task: forward message to Orchestrator, send reply via Evolution API."""
+async def publish_message(instance: str, remote_jid: str, message_text: str) -> None:
+    """Publish the incoming message to RabbitMQ."""
+    if not mq.channel:
+        logger.error("RabbitMQ channel not available")
+        return
+        
     try:
-        # 1. Send to Orchestrator
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                f"{ORCHESTRATOR_URL}/api/v1/invoke",
-                json={"user_id": remote_jid, "message": message_text},
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            answer: str = result.get("response", "Désolé, je n'ai pas pu générer de réponse.")
-
-        # 2. Send reply via Evolution API
-        response_url = f"{EVOLUTION_API_URL}/message/sendText/{instance}"
         payload = {
-            "number": remote_jid,
-            "options": {"delay": 1000, "presence": "composing"},
-            "text": answer,
+            "instance": instance,
+            "user_id": remote_jid,
+            "message": message_text
         }
-        headers = {"apikey": EVOLUTION_API_KEY, "Content-Type": "application/json"}
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            await client.post(response_url, json=payload, headers=headers)
-
+        message = aio_pika.Message(
+            body=json.dumps(payload).encode(),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        )
+        await mq.channel.default_exchange.publish(
+            message,
+            routing_key="whatsapp_messages"
+        )
+        logger.info("Published message from %s to RabbitMQ", remote_jid)
     except Exception as exc:
-        logger.error("Error processing message for %s: %s", remote_jid, exc)
+        logger.error("Error publishing message for %s: %s", remote_jid, exc)
 
+async def send_whatsapp_message(payload: dict) -> None:
+    """Send text message to WhatsApp via Evolution API."""
+    instance = payload.get("instance")
+    user_id = payload.get("user_id")
+    answer = payload.get("text")
+    
+    if not instance or not user_id or not answer:
+        logger.error("Invalid payload for outbound message: %s", payload)
+        return
+
+    response_url = f"{EVOLUTION_API_URL}/message/sendText/{instance}"
+    evo_payload = {
+        "number": user_id,
+        "options": {"delay": 1000, "presence": "composing"},
+        "text": answer,
+    }
+    headers = {
+        "apikey": EVOLUTION_API_KEY,
+        "Content-Type": "application/json",
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                response_url, json=evo_payload, headers=headers
+            )
+            if resp.status_code >= 400:
+                logger.warning(
+                    "Evolution API returned %d for %s",
+                    resp.status_code,
+                    user_id,
+                )
+    except Exception as exc:
+        logger.error("Failed to send reply via Evolution API: %s", exc)
+
+async def start_outbound_consumer() -> None:
+    """Consume outbound messages from RabbitMQ and send them to WhatsApp."""
+    if not mq.channel:
+        return
+    queue = await mq.channel.declare_queue("whatsapp_outbound", durable=True)
+    
+    async def on_outbound_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        async with message.process():
+            try:
+                payload = json.loads(message.body.decode())
+                await send_whatsapp_message(payload)
+            except Exception as exc:
+                logger.error("Error processing outbound message: %s", exc)
+                
+    await queue.consume(on_outbound_message)
+    logger.info("Gateway started consuming 'whatsapp_outbound' queue.")
 
 @app.post("/api/v1/webhook/whatsapp")
 async def whatsapp_webhook(
@@ -157,17 +243,30 @@ async def whatsapp_webhook(
     background_tasks: BackgroundTasks,
 ) -> dict:
     """Receive Evolution API webhooks and dispatch messages for processing."""
+    
+    # 1. Webhook Security: Verify Secret
+    if WEBHOOK_SECRET:
+        # Evolution API can send the secret in various ways depending on config
+        # We check both Authorization header and custom x-webhook-secret header
+        auth_header = request.headers.get("Authorization", "")
+        secret_header = request.headers.get("x-webhook-secret", "")
+        
+        token = auth_header.replace("Bearer ", "").strip() if "Bearer" in auth_header else auth_header
+        
+        if token != WEBHOOK_SECRET and secret_header != WEBHOOK_SECRET:
+            logger.warning("Webhook blocked: Invalid or missing WEBHOOK_SECRET.")
+            # We return a generic 403-like JSON instead of raising HTTPError to not break Evolution retries abruptly
+            return {"status": "ignored", "reason": "unauthorized signature"}
+
     try:
         payload = await request.json()
 
-        # Only process messages.upsert events
         if payload.get("event") != "messages.upsert":
             return {"status": "ignored", "reason": "not messages.upsert"}
 
         data = payload.get("data", {})
         key = data.get("key", {})
 
-        # Ignore messages sent by us
         if key.get("fromMe") is True:
             return {"status": "ignored", "reason": "fromMe"}
 
@@ -177,12 +276,9 @@ async def whatsapp_webhook(
         if not remote_jid or not instance:
             return {"status": "ignored", "reason": "missing data"}
 
-        # Whitelist check: only process requests from allowed numbers
         if ALLOWED_WHATSAPP_NUMBERS:
             number_only = remote_jid.split("@")[0]
-            # Match if the allowed number is part of the remote_jid (e.g. allowing without country code)
             if not any(allowed in number_only for allowed in ALLOWED_WHATSAPP_NUMBERS):
-                logger.info("Ignored message from unauthorized number: %s", remote_jid)
                 return {"status": "ignored", "reason": "unauthorized number"}
 
         message_obj: dict = data.get("message", {})
@@ -193,14 +289,13 @@ async def whatsapp_webhook(
         if not remote_jid or not message_text or not instance:
             return {"status": "ignored", "reason": "missing data"}
 
-        background_tasks.add_task(process_and_reply, instance, remote_jid, message_text)
+        background_tasks.add_task(publish_message, instance, remote_jid, message_text)
         return {"status": "accepted"}
 
     except Exception as exc:
         logger.error("Webhook processing error: %s", exc)
         return {"status": "error"}
 
-
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "healthy", "service": "gateway", "version": "2.0.0"}
+    return {"status": "healthy", "service": "gateway", "version": "2.0.0", "queue_connected": str(mq.channel is not None)}

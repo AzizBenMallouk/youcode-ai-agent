@@ -24,6 +24,22 @@ fi
 echo "▶️ Injecting secrets from .env into Kubernetes secret 'youcode-secrets'..."
 kubectl create secret generic youcode-secrets --from-env-file=.env -o yaml --dry-run=client | kubectl apply -f -
 
+# Check for Google Credentials in secrets folder
+if [ -f "secrets/google_credentials.json" ]; then
+    echo "▶️ Injecting Google Credentials into Kubernetes secret 'google-credentials'..."
+    kubectl create secret generic google-credentials --from-file=credentials.json=secrets/google_credentials.json -o yaml --dry-run=client | kubectl apply -f -
+else
+    echo "⚠️ Warning: secrets/google_credentials.json not found. Google Sheets MCP may not work."
+fi
+
+# Create ConfigMap for LiteLLM
+if [ -f "config/litellm_config.yaml" ]; then
+    echo "▶️ Injecting LiteLLM Config into Kubernetes ConfigMap 'litellm-config'..."
+    kubectl create configmap litellm-config --from-file=config.yaml=config/litellm_config.yaml -o yaml --dry-run=client | kubectl apply -f -
+else
+    echo "⚠️ Warning: config/litellm_config.yaml not found. LiteLLM may not start properly."
+fi
+
 echo "✅ Secrets successfully synchronized!"
 echo ""
 echo "💡 Note: Existing pods do not automatically reload secrets."

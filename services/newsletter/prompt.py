@@ -13,7 +13,7 @@ Examples:
 # RULES
 - Language (fr, en, ar, darija).
 - Do not invent an email or preference.
-- Extract `full_name` and `cin` if explicitly provided. Do not deduce.
+- Extract `full_name` if explicitly provided. Do not deduce.
 - Correct the data if the new message contradicts the provided draft.
 - Place contradictions in `ambiguities`.
 - Info request != Newsletter subscription (e.g., "When do registrations open?" = Guide).
