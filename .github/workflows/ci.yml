@@ -48,8 +48,53 @@ jobs:
         docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-orchestrator:$IMAGE_TAG -f services/orchestrator/Dockerfile .
         docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-orchestrator:$IMAGE_TAG
 
-    # Etc... (Support, Newsletter, Guide)
+    - name: Build, tag, and push Support image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-support:$IMAGE_TAG -f services/support/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-support:$IMAGE_TAG
 
+    - name: Build, tag, and push Newsletter image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-newsletter:$IMAGE_TAG -f services/newsletter/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-newsletter:$IMAGE_TAG
+
+    - name: Build, tag, and push Guide image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-guide:$IMAGE_TAG -f services/guide/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-guide:$IMAGE_TAG
+
+    - name: Build, tag, and push Admin image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-admin:$IMAGE_TAG -f services/admin/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-admin:$IMAGE_TAG
+
+    - name: Build, tag, and push Sheet GMCP image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-sheet-gmcp:$IMAGE_TAG -f services/sheet-gmcp/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-sheet-gmcp:$IMAGE_TAG
+
+    - name: Build, tag, and push Email MCP image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-email-mcp:$IMAGE_TAG -f services/email-mcp/Dockerfile .
+        docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-email-mcp:$IMAGE_TAG
   update-gitops:
     name: Update GitOps Repository
     needs: build-and-push
