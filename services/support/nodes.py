@@ -48,7 +48,7 @@ class SupportNodes:
     ) -> None:
         self.extractor = extractor or create_support_extractor()
 
-    def extract_information(
+    async def extract_information(
         self,
         state: SupportState,
     ) -> dict:
@@ -57,7 +57,7 @@ class SupportNodes:
         informations du dernier message.
         """
 
-        message = self._get_last_user_message(state)
+        message = await self._get_last_user_message(state)
 
         current_draft: SupportDraft = dict(
             state.get(
@@ -172,7 +172,7 @@ class SupportNodes:
             support_phase=("awaiting_consent"),
         )
 
-    def classify_consent(
+    async def classify_consent(
         self,
         state: SupportState,
     ) -> dict:
@@ -181,7 +181,7 @@ class SupportNodes:
         lorsque le consentement a été demandé.
         """
 
-        message = self._get_last_user_message(state)
+        message = await self._get_last_user_message(state)
 
         extraction = self.extractor.extract_consent(message=message)
 
@@ -351,11 +351,11 @@ class SupportNodes:
         except Exception:
             raise
 
-    def classify_session_proposal(
+    async def classify_session_proposal(
         self,
         state: SupportState,
     ) -> dict:
-        message = self._get_last_user_message(state)
+        message = await self._get_last_user_message(state)
 
         decision = self.extractor.extract_session_decision(
             message=message,
@@ -408,13 +408,13 @@ class SupportNodes:
         campus = draft.get("campus", "Campus Inconnu")
 
         if email:
-            from shared.mcp.client import call_agent_tool
+            from shared.mcp_client.client import call_agent_tool
             from shared.core.config import settings
             target_url = getattr(settings, "email_mcp_url", "http://email-mcp:8005")
             
             await call_agent_tool(
-                agent_base_url=target_url,
-                tool_name="send_rescheduling_email",
+                mcp_url=target_url,
+                tool_name="send_email",
                 email=email,
                 old_date=old_date,
                 new_date=proposed_date,
@@ -470,7 +470,7 @@ class SupportNodes:
 
 
     @staticmethod
-    def _get_last_user_message(
+    async def _get_last_user_message(
         state: SupportState,
     ) -> str:
         for message in reversed(state.get("messages", [])):

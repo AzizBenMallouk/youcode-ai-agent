@@ -77,10 +77,16 @@ def create_document_vector_store(
 
     if not force_recreate and not effective_client.collection_exists(collection_name=collection_name):
         import logging
-        logging.warning("Collection does not exist. Auto-creating empty collection with dimension 768 to allow startup.")
+        logger = logging.getLogger(__name__)
+        vector_size = detect_embedding_dimension(effective_embeddings)
+        logger.warning(
+            "Collection '%s' does not exist. Auto-creating with detected dimension %d.",
+            collection_name,
+            vector_size,
+        )
         effective_client.create_collection(
             collection_name=collection_name,
-            vectors_config=VectorParams(size=768, distance=Distance.COSINE),
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
         )
 
     return QdrantVectorStore(

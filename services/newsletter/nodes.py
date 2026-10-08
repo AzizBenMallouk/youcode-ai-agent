@@ -6,6 +6,7 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
+from shared.memory.summarizer import summarize_if_needed
 from .extractor import (
     NewsletterExtractor,
 )
@@ -29,7 +30,7 @@ class NewsletterNodes:
     ) -> None:
         self.extractor = extractor
 
-    def extract(
+    async def extract(
         self,
         state: NewsletterState,
     ) -> dict[str, Any]:
@@ -38,7 +39,7 @@ class NewsletterNodes:
         visiteur.
         """
 
-        message = self._last_user_message(state.get("messages", []))
+        message = await self._last_user_message(state.get("messages", []))
 
         if not message:
             return self._error("Veuillez écrire votre demande.")
@@ -121,7 +122,7 @@ class NewsletterNodes:
 
             return self._technical_error()
 
-    def consent(
+    async def consent(
         self,
         state: NewsletterState,
     ) -> dict[str, Any]:
@@ -129,7 +130,7 @@ class NewsletterNodes:
         Analyse la réponse oui/non du visiteur.
         """
 
-        message = self._last_user_message(state.get("messages", []))
+        message = await self._last_user_message(state.get("messages", []))
 
         draft = state.get(
             "newsletter_draft",
@@ -255,23 +256,17 @@ class NewsletterNodes:
             return self._technical_error()
 
     @staticmethod
-    def _last_user_message(
+    async def _last_user_message(
         messages: list[BaseMessage],
     ) -> str | None:
+        # Apply summarization to keep context manageable
+        messages = await summarize_if_needed(messages)
         for message in reversed(messages):
-            if isinstance(
-                message,
-                HumanMessage,
-            ):
-                if isinstance(
-                    message.content,
-                    str,
-                ):
+            if isinstance(message, HumanMessage):
+                if isinstance(message.content, str):
                     content = message.content.strip()
-
                     if content:
                         return content
-
         return None
 
     @staticmethod

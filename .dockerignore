@@ -16,3 +16,6 @@ apps/
 *.sqlite
 *.db
 data/
+.gemini/
+.agents/
+brain/

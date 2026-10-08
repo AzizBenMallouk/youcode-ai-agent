@@ -28,7 +28,7 @@ from .state import (
 
 class SupportExtractor:
     def __init__(self) -> None:
-        chat_model = create_chat_model()
+        chat_model = create_chat_model(use_cache=False)
 
         information_prompt = ChatPromptTemplate.from_messages(
             [

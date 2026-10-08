@@ -1,7 +1,16 @@
-"""Gateway Service — WhatsApp webhook receiver and proxy.
+"""WhatsApp Gateway Service — Evolution API webhook receiver and RabbitMQ publisher.
 
-Receives events from Evolution API (WhatsApp), filters relevant
-messages, and publishes them to RabbitMQ for Orchestrator processing.
+Receives events from Evolution API (WhatsApp), filters:
+  - Only private messages (@s.whatsapp.net JIDs — group messages ignored)
+  - Only from allowlisted phone numbers
+
+Publishes to:
+  - `incoming_messages`  (shared, multi-source — source=whatsapp)
+  - `whatsapp_messages`  (legacy backward compat)
+
+Consumes from:
+  - `outbound_messages`  (shared, multi-source — filters source=whatsapp)
+  - `whatsapp_outbound`  (legacy backward compat)
 
 This service is intentionally lightweight — no LLM, no database.
 It reads its configuration from environment variables directly.
@@ -30,6 +39,9 @@ WEBHOOK_SECRET: str = os.getenv("WEBHOOK_SECRET", "")
 ALLOWED_WHATSAPP_NUMBERS_STR: str = os.getenv("ALLOWED_WHATSAPP_NUMBERS", "")
 ALLOWED_WHATSAPP_NUMBERS = [n.strip() for n in ALLOWED_WHATSAPP_NUMBERS_STR.split(",") if n.strip()]
 
+# In-memory deduplication set
+processed_message_ids: set[str] = set()
+
 
 # ---------------------------------------------------------------------------
 # RabbitMQ Connection Management
@@ -51,14 +63,18 @@ async def lifespan(app: FastAPI):
         # Declare queue to ensure it exists with DLQ arguments to avoid conflict with Orchestrator
         await mq.channel.declare_queue("whatsapp_messages_dlq", durable=True)
         await mq.channel.declare_queue(
-            "whatsapp_messages", 
+            "whatsapp_messages",
             durable=True,
             arguments={
                 "x-dead-letter-exchange": "",
-                "x-dead-letter-routing-key": "whatsapp_messages_dlq"
-            }
+                "x-dead-letter-routing-key": "whatsapp_messages_dlq",
+            },
         )
-        
+        # Shared multi-source incoming queue
+        await mq.channel.declare_queue("incoming_messages", durable=True)
+        # Shared multi-source outbound queue
+        await mq.channel.declare_queue("outbound_messages", durable=True)
+
         # Start consuming outbound messages from Orchestrator
         await start_outbound_consumer()
         
@@ -75,7 +91,7 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-app = FastAPI(title="YouCode AI — Gateway Service", lifespan=lifespan)
+app = FastAPI(title="YouCode AI — WhatsApp Gateway", lifespan=lifespan)
 
 @app.get("/qr", response_class=HTMLResponse)
 async def qr_interface():
@@ -162,26 +178,35 @@ async def get_qr_code(instance_name: str) -> dict:
         return {"status": "error", "message": str(exc)}
 
 async def publish_message(instance: str, remote_jid: str, message_text: str) -> None:
-    """Publish the incoming message to RabbitMQ."""
+    """Publish the incoming WhatsApp message to RabbitMQ queues."""
     if not mq.channel:
         logger.error("RabbitMQ channel not available")
         return
-        
+
     try:
+        # Shared envelope with source field (used by multi-source Orchestrator)
         payload = {
+            "source": SOURCE,
             "instance": instance,
             "user_id": remote_jid,
-            "message": message_text
+            "message": message_text,
         }
-        message = aio_pika.Message(
-            body=json.dumps(payload).encode(),
-            delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        body = json.dumps(payload).encode()
+        amqp_message = aio_pika.Message(
+            body=body,
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
         )
+
+        # Publish to shared multi-source queue
         await mq.channel.default_exchange.publish(
-            message,
-            routing_key="whatsapp_messages"
+            amqp_message, routing_key="incoming_messages"
         )
-        logger.info("Published message from %s to RabbitMQ", remote_jid)
+        # Publish to legacy queue for backward compatibility
+        await mq.channel.default_exchange.publish(
+            aio_pika.Message(body=body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            routing_key="whatsapp_messages",
+        )
+        logger.info("Published WhatsApp message from %s to RabbitMQ.", remote_jid)
     except Exception as exc:
         logger.error("Error publishing message for %s: %s", remote_jid, exc)
 
@@ -220,22 +245,39 @@ async def send_whatsapp_message(payload: dict) -> None:
     except Exception as exc:
         logger.error("Failed to send reply via Evolution API: %s", exc)
 
+async def _handle_outbound(payload: dict) -> None:
+    """Forward an outbound message to WhatsApp if source matches."""
+    source = payload.get("source", SOURCE)  # default to whatsapp for legacy messages
+    if source != SOURCE:
+        return  # Message destined for another gateway (e.g., Discord)
+    await send_whatsapp_message(payload)
+
+
+SOURCE = "whatsapp"
+
+
 async def start_outbound_consumer() -> None:
     """Consume outbound messages from RabbitMQ and send them to WhatsApp."""
     if not mq.channel:
         return
-    queue = await mq.channel.declare_queue("whatsapp_outbound", durable=True)
-    
-    async def on_outbound_message(message: aio_pika.abc.AbstractIncomingMessage) -> None:
+
+    async def _consumer(message: aio_pika.abc.AbstractIncomingMessage) -> None:
         async with message.process():
             try:
                 payload = json.loads(message.body.decode())
-                await send_whatsapp_message(payload)
+                await _handle_outbound(payload)
             except Exception as exc:
                 logger.error("Error processing outbound message: %s", exc)
-                
-    await queue.consume(on_outbound_message)
-    logger.info("Gateway started consuming 'whatsapp_outbound' queue.")
+
+    # Legacy queue
+    legacy_queue = await mq.channel.declare_queue("whatsapp_outbound", durable=True)
+    await legacy_queue.consume(_consumer)
+
+    # Shared multi-source queue
+    shared_queue = await mq.channel.declare_queue("outbound_messages", durable=True)
+    await shared_queue.consume(_consumer)
+
+    logger.info("Gateway consuming 'whatsapp_outbound' and 'outbound_messages' queues.")
 
 @app.post("/api/v1/webhook/whatsapp")
 async def whatsapp_webhook(
@@ -272,9 +314,24 @@ async def whatsapp_webhook(
 
         remote_jid: str | None = key.get("remoteJid")
         instance: str | None = payload.get("instance")
-        
-        if not remote_jid or not instance:
+        message_id: str | None = key.get("id")
+
+        if not remote_jid or not instance or not message_id:
             return {"status": "ignored", "reason": "missing data"}
+
+        # Deduplicate incoming webhooks by message ID
+        if message_id in processed_message_ids:
+            return {"status": "ignored", "reason": "duplicate message"}
+            
+        processed_message_ids.add(message_id)
+        if len(processed_message_ids) > 1000:
+            # Simple cleanup to prevent memory leak
+            processed_message_ids.clear()
+            processed_message_ids.add(message_id)
+
+        # Only process private messages (1:1) — ignore group chats
+        if not remote_jid.endswith("@s.whatsapp.net"):
+            return {"status": "ignored", "reason": "not a private message"}
 
         if ALLOWED_WHATSAPP_NUMBERS:
             number_only = remote_jid.split("@")[0]
@@ -298,4 +355,4 @@ async def whatsapp_webhook(
 
 @app.get("/health")
 async def health() -> dict[str, str]:
-    return {"status": "healthy", "service": "gateway", "version": "2.0.0", "queue_connected": str(mq.channel is not None)}
+    return {"status": "healthy", "service": "whatsapp-gateway", "version": "2.1.0", "queue_connected": str(mq.channel is not None)}

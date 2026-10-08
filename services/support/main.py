@@ -42,12 +42,15 @@ async def handle_support_request(payload: dict) -> dict:
         "user_id": user_id,
     }
 
-    result_state = await graph.ainvoke(state_update, config)
-
-    last_msg = result_state["messages"][-1]
-    response_text = (
-        last_msg.content if hasattr(last_msg, "content") else str(last_msg)
-    )
+    try:
+        result_state = await graph.ainvoke(state_update, config)
+        last_msg = result_state["messages"][-1]
+        response_text = (
+            last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+        )
+    except Exception as exc:
+        logger.error(f"Error processing support request: {exc}")
+        response_text = "Une erreur technique est survenue lors du traitement de votre demande de support. Veuillez réessayer ultérieurement."
 
     return {
         "response": response_text,

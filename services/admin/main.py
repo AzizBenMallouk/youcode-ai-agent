@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage
 
 from shared.core.config import settings
 from shared.infrastructure.database.checkpointer import create_checkpointer
+from shared.infrastructure.database.initialize import initialize_database
 from shared.messaging import MessageBroker, RPCServer
 from shared.a2a.schemas import AgentRequest, AgentResponse
 
@@ -44,17 +45,21 @@ async def handle_admin_request(payload: dict) -> dict:
         "role": role
     }
 
-    result_state = await graph.ainvoke(state_update, config)
+    try:
+        result_state = await graph.ainvoke(state_update, config)
 
-    # If rejected by guardrail, it returns final_response
-    if result_state.get("admin_phase") == "rejected":
-        response_text = result_state.get("final_response", {}).get("answer", "Rejected")
-    else:
-        # ReAct agent result is in the last message
-        last_msg = result_state["messages"][-1]
-        response_text = (
-            last_msg.content if hasattr(last_msg, "content") else str(last_msg)
-        )
+        # If rejected by guardrail, it returns final_response
+        if result_state.get("admin_phase") == "rejected":
+            response_text = result_state.get("final_response", {}).get("answer", "Rejected")
+        else:
+            # ReAct agent result is in the last message
+            last_msg = result_state["messages"][-1]
+            response_text = (
+                last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+            )
+    except Exception as exc:
+        logger.error(f"Error processing admin request: {exc}")
+        response_text = "Une erreur technique est survenue lors du traitement de votre demande administrateur."
 
     return {
         "response": response_text,
@@ -67,6 +72,8 @@ async def handle_admin_request(payload: dict) -> dict:
 async def lifespan(app: FastAPI):
     """Démarre le graph + le consumer RPC RabbitMQ."""
     async with create_checkpointer(settings.database_url) as checkpointer:
+        initialize_database()
+        logger.info("Database initialized.")
         app.state.graph = create_graph(checkpointer=checkpointer)
         logger.info("Admin graph loaded.")
 

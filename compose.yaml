@@ -61,7 +61,9 @@ services:
     environment:
     - REDIS_URL=redis://redis:6379
     - GEMINI_API_KEY=${GOOGLE_API_KEY}
+    - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     - LITELLM_LOG=INFO
+    - QDRANT_URL=http://qdrant:6333
     command:
     - --config
     - /app/config.yaml
@@ -271,7 +273,7 @@ services:
     env_file:
     - .env
     ports:
-    - "8010-8011:8010"
+    - "8006:8006"
     volumes:
     - ./data:/app/data
     environment:
@@ -297,7 +299,7 @@ services:
       - CMD
       - curl
       - -f
-      - http://localhost:8010/health
+      - http://localhost:8006/health
       interval: 15s
       timeout: 5s
       retries: 3
@@ -310,21 +312,22 @@ services:
   # Gateway — single entry point (keeps container_name for Evolution API)
   # ---------------------------------------------------------------------------
 
-  gateway:
+  whatsapp-gateway:
     build:
       context: .
-      dockerfile: ./services/gateway/Dockerfile
-    container_name: youcode-gateway
+      dockerfile: ./services/whatsapp-gateway/Dockerfile
+    container_name: youcode-whatsapp-gateway
     env_file:
     - .env
     ports:
     - 8000:8000
     environment:
-    - ORCHESTRATOR_URL=http://orchestrator:8010
+    - ORCHESTRATOR_URL=http://orchestrator:8006
     - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
     - EVOLUTION_API_URL=http://evolution-api:8080
     - EVOLUTION_API_KEY=${EVOLUTION_API_KEY:-super_secret_key}
     - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    - ALLOWED_WHATSAPP_NUMBERS=${ALLOWED_WHATSAPP_NUMBERS:-}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -350,7 +353,7 @@ services:
     environment:
     - SERVER_URL=http://localhost:8080
     - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-super_secret_key}
-    - WEBHOOK_GLOBAL_URL=http://gateway:8000/api/v1/whatsapp/webhook
+    - WEBHOOK_GLOBAL_URL=http://whatsapp-gateway:8000/api/v1/webhook/whatsapp
     - WEBHOOK_GLOBAL_ENABLED=true
     - WEBHOOK_GLOBAL_WEBSOCKET=false
     - WEBHOOK_EVENTS_APPLICATION_STARTUP=false
@@ -361,12 +364,38 @@ services:
     - CACHE_REDIS_URI=redis://redis:6379
     - REDIS_URI=redis://redis:6379
     depends_on:
-      gateway:
+      whatsapp-gateway:
         condition: service_healthy
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  discord-gateway:
+    build:
+      context: .
+      dockerfile: ./services/discord-gateway/Dockerfile
+    env_file:
+    - .env
+    environment:
+    - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+
+    expose:
+    - "8006"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  fake-registration-api:
+    build:
+      context: .
+      dockerfile: ./services/fake_registration_api/Dockerfile
+    container_name: youcode-fake-registration-api
+    ports:
+    - 9001:9001
     restart: unless-stopped
 
 volumes:

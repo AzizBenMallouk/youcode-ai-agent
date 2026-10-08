@@ -8,7 +8,7 @@ echo "================================================="
 # 1. Start Minikube if not running
 if ! minikube status >/dev/null 2>&1; then
     echo "▶️ Starting Minikube..."
-    minikube start
+    minikube start --memory=4096 --cpus=4
 else
     echo "✅ Minikube is already running."
 fi
@@ -35,7 +35,7 @@ docker pull evoapicloud/evolution-api:latest
 docker tag evoapicloud/evolution-api:latest youcode/evolution-api:local
 
 # Microservices
-docker build -t youcode/gateway:local -f services/gateway/Dockerfile .
+docker build -t youcode/whatsapp-gateway:local -t youcode/whatsapp-gateway:latest -t youcode/gateway:local -t youcode/gateway:latest -f services/whatsapp-gateway/Dockerfile .
 docker build -t youcode/orchestrator:local -f services/orchestrator/Dockerfile .
 docker build -t youcode/support:local -f services/support/Dockerfile .
 docker build -t youcode/guide:local -f services/guide/Dockerfile .
@@ -43,6 +43,12 @@ docker build -t youcode/newsletter:local -f services/newsletter/Dockerfile .
 docker build -t youcode/sheet-gmcp:local -f services/sheet-gmcp/Dockerfile .
 docker build -t youcode/email-mcp:local -f services/email-mcp/Dockerfile .
 docker build -t youcode/admin:local -f services/admin/Dockerfile .
+docker build -t youcode/fake-registration:local -f services/fake_registration_api/Dockerfile .
+docker build -t youcode/discord-gateway:local -f services/discord-gateway/Dockerfile .
+
+# Apply secrets from .env
+echo "▶️ Applying Kubernetes secrets..."
+./apply-secrets.sh
 
 # 5. Configure ArgoCD to track the GitOps repository
 echo "▶️ Deploying YouCode AI via ArgoCD (GitOps)..."
@@ -62,8 +68,12 @@ spec:
       parameters:
         - name: "evolution.image.tag"
           value: "local"
+        - name: "microservices.whatsapp_gateway.image.tag"
+          value: "local"
         - name: "microservices.gateway.image.tag"
           value: "local"
+        - name: "microservices.gateway.image.pullPolicy"
+          value: "IfNotPresent"
         - name: "microservices.orchestrator.image.tag"
           value: "local"
         - name: "microservices.support.image.tag"
@@ -86,6 +96,11 @@ spec:
       prune: true
       selfHeal: true
 EOF
+
+echo "▶️ Applying local components missing from GitOps..."
+kubectl apply -f k8s-missing.yaml || true
+kubectl apply -f k8s-fake-registration.yaml || true
+kubectl apply -f k8s-discord-gateway.yaml || true
 
 echo "================================================="
 echo "🎉 Setup Complete!"

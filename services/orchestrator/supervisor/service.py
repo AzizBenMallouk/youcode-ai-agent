@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class SupervisorService:
     def __init__(self) -> None:
-        model = create_chat_model()
+        model = create_chat_model(use_cache=False)
 
         self.structured_model = model.with_structured_output(SupervisorDecision)
 

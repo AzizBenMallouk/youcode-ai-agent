@@ -19,14 +19,14 @@ class GuideAgentService:
     def __init__(self) -> None:
         self.agent = create_guide_agent()
 
-    def invoke(
+    async def ainvoke(
         self,
         *,
         message: str,
         history: Sequence[BaseMessage] | None = None,
     ) -> GuideResponse:
         """
-        Exécute le Guide Agent.
+        Exécute le Guide Agent de manière asynchrone.
 
         L'historique est fourni par le workflow
         principal. Le service ne conserve aucun
@@ -38,7 +38,7 @@ class GuideAgentService:
         messages.append(HumanMessage(content=message.strip()))
 
         try:
-            result = self.agent.invoke(
+            result = await self.agent.ainvoke(
                 {
                     "messages": messages,
                 }
@@ -63,6 +63,8 @@ class GuideAgentService:
                 return response
 
             return self._technical_error()
+
+
 
         except Exception:
             import traceback

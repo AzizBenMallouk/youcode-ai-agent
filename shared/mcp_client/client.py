@@ -34,11 +34,11 @@ class MCPAgentClient:
 
     def __init__(
         self,
-        agent_base_url: str,
+        mcp_url: str,
         *,
         timeout: float = 60.0,
     ) -> None:
-        self._mcp_url = f"{agent_base_url.rstrip('/')}/mcp"
+        self._mcp_url = f"{mcp_url.rstrip('/')}/mcp"
         self._timeout = timeout
         self._session: ClientSession | None = None
         self._exit_stack: AsyncExitStack | None = None
@@ -53,8 +53,11 @@ class MCPAgentClient:
                     http_client=http_client,
                 )
             )
-            # streamable_http_client yields (read, write, get_session_id)
-            read, write, _ = transport
+            # handle different mcp version return lengths
+            if len(transport) == 2:
+                read, write = transport
+            else:
+                read, write, *_ = transport
             self._session = await self._exit_stack.enter_async_context(
                 ClientSession(read, write)
             )
@@ -90,7 +93,7 @@ class MCPAgentClient:
 
 
 async def call_agent_tool(
-    agent_base_url: str,
+    mcp_url: str,
     tool_name: str,
     *,
     timeout: float = 60.0,
@@ -101,5 +104,5 @@ async def call_agent_tool(
     Use this for simple calls from the Orchestrator.
     Raises on connection/timeout errors (caller handles fallback).
     """
-    async with MCPAgentClient(agent_base_url, timeout=timeout) as client:
+    async with MCPAgentClient(mcp_url, timeout=timeout) as client:
         return await client.call_tool(tool_name, **kwargs)

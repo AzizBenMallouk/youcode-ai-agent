@@ -2,7 +2,7 @@
 name = "guide-service"
 version = "0.1.0"
 description = "YouCode AI guide agent — RAG-powered question answering via MCP"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",

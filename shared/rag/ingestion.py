@@ -87,7 +87,7 @@ class DocumentIngestionService:
             indexed_children=(indexed_children),
             vector_size=vector_size,
             collection_name=(settings.qdrant_documents_collection),
-            embedding_provider=(settings.embedding_provider),
+            embedding_provider="gemini",
         )
 
     def _index_children(

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-gateway
+  template:
+    metadata:
+      labels:
+        app: discord-gateway
+    spec:
+      containers:
+        - name: discord-gateway
+          image: youcode/discord-gateway:local
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: youcode-secrets
+          env:
+            - name: RABBITMQ_URL
+              value: "amqp://guest:guest@rabbitmq:5672/"

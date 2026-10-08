@@ -3,11 +3,13 @@ import asyncio
 import os
 import json
 import logging
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("E2E_Tests")
 
-ORCHESTRATOR_URL = "http://orchestrator:8010/api/v1/invoke"
+ORCHESTRATOR_URL = "http://orchestrator:8006/api/v1/invoke"
+GATEWAY_URL = "http://gateway:8000/api/v1/webhook/whatsapp"
 
 SCENARIOS = {
     "1. Newsletter": {
@@ -39,7 +41,7 @@ SCENARIOS = {
         ]
     },
     "4. Admin (Rapport)": {
-        "user_id": "212600000000", # Numéro configuré comme staff dans main.py
+        "user_id": "212600000000",
         "messages": [
             "Bonjour, je suis membre du staff. Génère-moi un rapport des demandes de support s'il te plait."
         ]
@@ -52,8 +54,8 @@ SCENARIOS = {
     }
 }
 
-async def send_message(client, user_id, message):
-    logger.info(f"Sending message for {user_id}: {message}")
+async def send_orchestrator_message(client, user_id, message):
+    logger.info(f"Sending to Orchestrator for {user_id}: {message}")
     payload = {
         "user_id": user_id,
         "message": message
@@ -67,12 +69,51 @@ async def send_message(client, user_id, message):
     except Exception as e:
         return f"[Exception] {str(e)}"
 
-import uuid
+async def send_gateway_message(client, remote_jid, message):
+    logger.info(f"Sending to Gateway Webhook for {remote_jid}: {message}")
+    payload = {
+        "event": "messages.upsert",
+        "instance": "youcode-test",
+        "data": {
+            "key": {
+                "remoteJid": remote_jid,
+                "fromMe": False
+            },
+            "message": {
+                "conversation": message
+            }
+        }
+    }
+    try:
+        response = await client.post(GATEWAY_URL, json=payload, timeout=10.0)
+        return response.status_code, response.json()
+    except Exception as e:
+        return 500, {"error": str(e)}
+
 async def run_scenarios():
-    report = "# Rapport de Conversations (Tests End-to-End)\n\n"
+    report = "# Rapport de Tests E2E Complets\n\n"
     run_id = str(uuid.uuid4().hex)[:4]
     
     async with httpx.AsyncClient() as client:
+        # 1. Tester la Gateway (Sécurité / Listes Blanches)
+        report += "## Scénario 0 : Test de Sécurité de la Gateway\n\n"
+        # Test autorisé (numéro de l'admin configuré dans main.py 212771452642)
+        authorized_jid = "212771452642@s.whatsapp.net"
+        status, data = await send_gateway_message(client, authorized_jid, "Salut YouCode")
+        report += f"**✅ Test Utilisateur Autorisé** (`{authorized_jid}`) -> Statut HTTP {status} : `{data}`\n\n"
+        
+        # Test refusé (numéro non autorisé)
+        unauthorized_jid = "212600000000@s.whatsapp.net"
+        status, data = await send_gateway_message(client, unauthorized_jid, "Salut YouCode")
+        report += f"**❌ Test Utilisateur Non Autorisé** (`{unauthorized_jid}`) -> Statut HTTP {status} : `{data}`\n\n"
+        
+        # Test refusé (groupe)
+        group_jid = "123456789-987654321@g.us"
+        status, data = await send_gateway_message(client, group_jid, "Salut YouCode")
+        report += f"**❌ Test Message de Groupe** (`{group_jid}`) -> Statut HTTP {status} : `{data}`\n\n"
+        report += "---\n\n"
+
+        # 2. Tester l'Orchestrateur et les Agents (Cas d'usages)
         for scenario_name, data in SCENARIOS.items():
             if scenario_name == "4. Admin (Rapport)":
                 user_id = data["user_id"]
@@ -87,13 +128,13 @@ async def run_scenarios():
             for i, msg in enumerate(messages):
                 report += f"**🧑‍🦱 Utilisateur** : {msg}\n\n"
                 
-                agent_reply = await send_message(client, user_id, msg)
+                agent_reply = await send_orchestrator_message(client, user_id, msg)
                 
                 report += f"**🤖 Agent** : {agent_reply}\n\n"
                 report += "---\n\n"
                 
                 # Pause pour éviter les rate limits de l'API Gemini
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
                 
             report += "\n<br>\n\n"
             

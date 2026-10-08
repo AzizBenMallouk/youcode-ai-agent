@@ -9,7 +9,7 @@ COPY shared/ ./shared/
 RUN pip install --no-cache-dir -e ./shared/
 
 # Install gateway service (tiny: only fastapi + httpx)
-COPY services/gateway/ ./services/gateway/
+COPY services/whatsapp-gateway/ ./services/gateway/
 RUN pip install --no-cache-dir -e ./services/gateway/
 
 ENV PYTHONPATH=/app

@@ -5,6 +5,8 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
 )
+from shared.memory.summarizer import summarize_if_needed
+
 from .service import GuideAgentService
 from .state import GuideState
 from shared.core.config import settings
@@ -17,7 +19,7 @@ class GuideNodes:
     ) -> None:
         self.service = service
 
-    def answer_question(
+    async def answer_question(
         self,
         state: GuideState,
     ) -> dict[str, Any]:
@@ -39,10 +41,10 @@ class GuideNodes:
         # On ne transmet pas le dernier
         # HumanMessage dans history car le
         # service l'ajoute lui-même.
-        history = self._history_before_last_user_message(messages)
+        history = await self._history_before_last_user_message(messages)
 
         try:
-            response = self.service.invoke(
+            response = await self.service.ainvoke(
                 message=user_message,
                 history=history,
             )
@@ -85,36 +87,30 @@ class GuideNodes:
         return None
 
     @staticmethod
-    def _history_before_last_user_message(
+    async def _history_before_last_user_message(
         messages: list[BaseMessage],
     ) -> list[BaseMessage]:
         """
-        Retourne l'historique sans le dernier
-        message humain.
-
-        Le GuideAgentService ajoutera lui-même
-        ce dernier message.
+        Returns history without the last HumanMessage.
+        Applies memory summarization if history is too long.
         """
-
         last_user_index: int | None = None
 
-        for index in range(
-            len(messages) - 1,
-            -1,
-            -1,
-        ):
-            if isinstance(
-                messages[index],
-                HumanMessage,
-            ):
+        for index in range(len(messages) - 1, -1, -1):
+            if isinstance(messages[index], HumanMessage):
                 last_user_index = index
                 break
 
-        if last_user_index is None:
-            history = list(messages)
-        else:
-            history = list(messages[:last_user_index])
-            
+        history = (
+            list(messages[:last_user_index])
+            if last_user_index is not None
+            else list(messages)
+        )
+
+        # Apply summarization if history exceeds threshold
+        history = await summarize_if_needed(history)
+
+        # Final safety cap
         max_messages = settings.max_history_messages
         if max_messages > 0:
             return history[-max_messages:]

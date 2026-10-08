@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  labels:
+    app: litellm
+spec:
+  ports:
+    - port: 4000
+      targetPort: 4000
+  selector:
+    app: litellm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: litellm
+  template:
+    metadata:
+      labels:
+        app: litellm
+    spec:
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:main-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          args: ["--config", "/app/config.yaml"]
+          env:
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: youcode-secrets
+                  key: GOOGLE_API_KEY
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: litellm-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  ports:
+    - port: 5672
+      name: amqp
+    - port: 15672
+      name: management
+  selector:
+    app: rabbitmq
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-init
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: psql
+          image: postgres:15-alpine
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for postgres..."
+              until PGPASSWORD=youcode_pass psql -h postgres -U youcode -d evolution -c '\q'; do sleep 2; done
+              echo "Creating youcode_api database if it doesn't exist..."
+              PGPASSWORD=youcode_pass psql -h postgres -U youcode -d evolution -tc "SELECT 1 FROM pg_database WHERE datname = 'youcode_api'" | grep -q 1 || PGPASSWORD=youcode_pass psql -h postgres -U youcode -d evolution -c "CREATE DATABASE youcode_api"
+              echo "Database initialization complete."
+      restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+  namespace: default
+spec:
+  ports:
+    - name: http
+      port: 8006
+      targetPort: 8006
+  selector:
+    app: admin
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: default
+  labels:
+    app: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      containers:
+        - name: admin
+          image: youcode/admin:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8006
+          envFrom:
+            - secretRef:
+                name: youcode-secrets
+

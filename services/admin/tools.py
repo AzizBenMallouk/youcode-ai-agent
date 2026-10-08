@@ -4,7 +4,7 @@ from typing import Any
 from langchain_core.tools import tool
 from shared.infrastructure.database.connection import database_session
 from shared.infrastructure.database.tables.visitor_request import VisitorRequest
-from shared.mcp.client import call_agent_tool
+from shared.mcp_client.client import call_agent_tool
 from shared.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -45,9 +45,11 @@ async def generate_report_via_mcp(data_json: str, sheet_title: str = "Rapport_Ad
     """
     target_url = getattr(settings, "sheet_gmcp_url", "http://sheet-gmcp:8004")
     
+    logger.info(f"CALLED generate_report_via_mcp with title {sheet_title}")
+    
     try:
         result = await call_agent_tool(
-            agent_base_url=target_url,
+            mcp_url=target_url,
             tool_name="generate_admin_report",
             sheet_title=sheet_title,
             data_json=data_json

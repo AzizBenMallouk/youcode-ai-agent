@@ -1,9 +1,12 @@
 """Orchestrator Service — RabbitMQ RPC Client.
 
-Receives messages from RabbitMQ (whatsapp_messages queue),
-runs the Supervisor/Guardrail LangGraph to determine the
-correct agent, then delegates to the agent via RabbitMQ RPC.
-Finally, replies directly via Evolution API.
+Receives messages from RabbitMQ (whatsapp_messages and incoming_messages queues),
+runs the Supervisor/Guardrail LangGraph to determine the correct agent,
+then delegates to the agent via RabbitMQ RPC.
+
+When an agent returns requires_human=True, notifies the admin via Email MCP.
+Publishes responses to outbound_messages (with source field) and
+whatsapp_outbound (legacy) queues.
 """
 
 import asyncio
@@ -41,6 +44,41 @@ _AGENT_QUEUES: dict[str, str] = {
 }
 
 
+async def _notify_admin_requires_human(
+    user_id: str,
+    route: str,
+    summary: str,
+) -> None:
+    """
+    Call the Email MCP to notify the admin when requires_human=True.
+    Runs fire-and-forget — never blocks the response to the user.
+    """
+    try:
+        subject = f"[YouCode AI] Intervention requise — Agent {route.capitalize()}"
+        body = (
+            f"Un ticket nécessite une intervention humaine.\n\n"
+            f"Utilisateur : {user_id}\n"
+            f"Agent : {route}\n"
+            f"Résumé : {summary[:500]}"
+        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                f"{settings.email_mcp_url}/mcp",
+                json={
+                    "tool": "send_admin_notification",
+                    "arguments": {
+                        "subject": subject,
+                        "body": body,
+                        "admin_email": settings.admin_email,
+                    },
+                },
+            )
+        logger.info("Admin notification sent for user %s (agent: %s).", user_id, route)
+    except Exception as exc:
+        # Non-blocking — log and continue
+        logger.warning("Failed to send admin notification: %s", exc)
+
+
 async def process_whatsapp_message(
     payload: dict,
     graph,
@@ -56,8 +94,8 @@ async def process_whatsapp_message(
     try:
         # Mock staff detection
         staff_phones = ["212600000000", "212600000001", "test_admin"]
-        is_staff = user_id in staff_phones or "staff" in user_id.lower()
-        role = "admin" if user_id == "212600000000" else "formateur"
+        is_staff = any(user_id.startswith(phone) for phone in staff_phones) or "staff" in user_id.lower()
+        role = "admin" if user_id.startswith("212600000000") else "formateur"
         
         route = "admin" if is_staff else None
         orch_result = {}
@@ -74,6 +112,9 @@ async def process_whatsapp_message(
 
             orch_result = await graph.ainvoke(state_update, config)
             route = orch_result.get("route", "clarification")
+
+        # Initialize result to avoid UnboundLocalError
+        result = {}
 
         # 2. Check if it's a direct response (guardrail refusal, clarification)
         target_queue = _AGENT_QUEUES.get(route)
@@ -110,20 +151,43 @@ async def process_whatsapp_message(
                 logger.error("RPC call to %s failed: %s", route, exc)
                 answer = f"Le service {route} est temporairement indisponible."
 
+        if result.get("requires_human"):
+                asyncio.create_task(
+                    _notify_admin_requires_human(
+                        user_id=user_id,
+                        route=route or "unknown",
+                        summary=answer,
+                    )
+                )
+
         # 4. Publish reply to Gateway (whatsapp_outbound queue)
-        logger.info("Generated answer for %s: %s", user_id, answer[:100])
+        # logger.info("Generated answer for %s: %s", user_id, answer[:100])
+        logger.info("Generated answer for %s: %s", user_id, answer)
         try:
-            broker = rpc_client.broker
+            broker = rpc_client._broker
+            # Publish to shared multi-source outbound queue (with source field)
+            source = payload.get("source", "whatsapp")
             await broker.publish(
-                "whatsapp_outbound",
+                "outbound_messages",
                 {
+                    "source": source,
                     "instance": instance,
                     "user_id": user_id,
                     "text": answer,
-                }
+                },
             )
+            # Also publish to legacy whatsapp_outbound for backward compat
+            if source == "whatsapp":
+                await broker.publish(
+                    "whatsapp_outbound",
+                    {
+                        "instance": instance,
+                        "user_id": user_id,
+                        "text": answer,
+                    },
+                )
         except Exception as exc:
-            logger.error("Failed to publish reply to whatsapp_outbound: %s", exc)
+            logger.error("Failed to publish reply: %s", exc)
 
         logger.info("Successfully processed message for %s", user_id)
 
@@ -136,11 +200,8 @@ async def start_whatsapp_consumer(
     graph,
     rpc_client: RPCClient,
 ) -> None:
-    """Consomme les messages WhatsApp depuis RabbitMQ."""
+    """Consume from both whatsapp_messages (legacy) and incoming_messages (multi-source)."""
     await broker.set_qos(prefetch_count=10)
-    queue = await broker.declare_queue(
-        "whatsapp_messages", durable=True, with_dlq=True
-    )
 
     async def on_message(message) -> None:
         async with message.process():
@@ -149,14 +210,23 @@ async def start_whatsapp_consumer(
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 logger.error("Invalid message body: %s", exc)
                 return
-
-            # Process concurrently
             asyncio.create_task(
                 process_whatsapp_message(payload, graph, rpc_client)
             )
 
-    await queue.consume(on_message)
-    logger.info("WhatsApp consumer started on 'whatsapp_messages' queue.")
+    # Legacy queue
+    legacy_queue = await broker.declare_queue(
+        "whatsapp_messages", durable=True, with_dlq=True
+    )
+    await legacy_queue.consume(on_message)
+
+    # Shared multi-source queue (Discord, WhatsApp, future sources)
+    shared_queue = await broker.declare_queue(
+        "incoming_messages", durable=True, with_dlq=False
+    )
+    await shared_queue.consume(on_message)
+
+    logger.info("Orchestrator consuming 'whatsapp_messages' and 'incoming_messages'.")
 
 
 @asynccontextmanager
@@ -215,8 +285,8 @@ async def invoke_orchestrator(
 
     # Mock staff detection
     staff_phones = ["212600000000", "212600000001", "test_admin"]
-    is_staff = payload.user_id in staff_phones or "staff" in payload.user_id.lower()
-    role = "admin" if payload.user_id == "212600000000" else "formateur"
+    is_staff = any(payload.user_id.startswith(phone) for phone in staff_phones) or "staff" in payload.user_id.lower()
+    role = "admin" if payload.user_id.startswith("212600000000") else "formateur"
     
     route = "admin" if is_staff else None
     orch_result = {}

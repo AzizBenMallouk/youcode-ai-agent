@@ -1,13 +1,41 @@
-
 model_list:
-  - model_name: gemini-3.5-flash-lite
+  # Modèle principal — rapide et économique
+  - model_name: gemini-3.6-flash
     litellm_params:
-      model: gemini/gemini-3.5-flash-lite
+      model: gemini/gemini-3.6-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # Modèle de fallback 1
+  - model_name: gemini-3.1-flash-lite
+    litellm_params:
+      model: gemini/gemini-3.1-flash-lite
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # Modèle de fallback 2
+  - model_name: gemini-2.5-flash-lite
+    litellm_params:
+      model: gemini/gemini-2.5-flash-lite
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # Modèle d'embedding pour le cache sémantique
+  - model_name: gemini-embedding-2
+    litellm_params:
+      model: gemini/gemini-embedding-2
       api_key: os.environ/GOOGLE_API_KEY
 
 litellm_settings:
+  drop_params: true
+  log_level: INFO
+  fallbacks:
+    - gemini-3.6-flash:
+        - gemini-3.1-flash-lite
+        - gemini-2.5-flash-lite
   cache: true
   cache_params:
-    type: redis
-    host: redis
-    port: 6379
+    type: "qdrant-semantic"
+    qdrant_api_base: "http://qdrant:6333"
+    qdrant_collection_name: "litellm_semantic_cache"
+    similarity_threshold: 0.95
+    qdrant_semantic_cache_embedding_model: "gemini-embedding-2"
+    qdrant_semantic_cache_vector_size: 768
+    ttl: 3600

@@ -26,8 +26,8 @@ kubectl create secret generic youcode-secrets --from-env-file=.env -o yaml --dry
 
 # Check for Google Credentials in secrets folder
 if [ -f "secrets/google_credentials.json" ]; then
-    echo "▶️ Injecting Google Credentials into Kubernetes secret 'google-credentials'..."
-    kubectl create secret generic google-credentials --from-file=credentials.json=secrets/google_credentials.json -o yaml --dry-run=client | kubectl apply -f -
+    echo "▶️ Injecting Google Credentials into Kubernetes secret 'google-credentials-secret'..."
+    kubectl create secret generic google-credentials-secret --from-file=credentials.json=secrets/google_credentials.json -o yaml --dry-run=client | kubectl apply -f -
 else
     echo "⚠️ Warning: secrets/google_credentials.json not found. Google Sheets MCP may not work."
 fi

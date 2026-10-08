@@ -21,7 +21,7 @@ from shared.core.llm import (
 
 class NewsletterExtractor:
     def __init__(self) -> None:
-        model = create_chat_model()
+        model = create_chat_model(use_cache=False)
 
         self.extraction_model = model.with_structured_output(NewsletterExtraction)
 
